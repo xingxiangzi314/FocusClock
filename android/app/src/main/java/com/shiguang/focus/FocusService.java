@@ -34,7 +34,7 @@ public class FocusService extends Service {
                 boolean hadActive = repo.active() != null;
                 String result = repo.command(action,new JSONObject());
                 try {
-                    if (hadActive && !new JSONObject(result).has("error")) Haptics.perform(this,repo.settings().optBoolean("haptics",true),"pause".equals(action)?"click":"confirm");
+                    if (hadActive && !new JSONObject(result).has("error")) Haptics.perform(this,repo.settings().optBoolean("haptics",true),repo.settings().optInt("hapticStrength",Haptics.DEFAULT_STRENGTH),"pause".equals(action)?"click":"confirm");
                 } catch (org.json.JSONException ignored) {}
             }
         }

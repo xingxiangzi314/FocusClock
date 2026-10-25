@@ -89,11 +89,12 @@ class ActiveFocus {
 }
 
 class FocusSettings {
-  final int goal;
+  final int goal, hapticStrength;
   final String theme;
   final bool sound, haptics, keepAwake;
   const FocusSettings({
     this.goal = 120,
+    this.hapticStrength = 35,
     this.theme = 'system',
     this.sound = true,
     this.haptics = true,
@@ -101,6 +102,7 @@ class FocusSettings {
   });
   factory FocusSettings.fromJson(Json j) => FocusSettings(
     goal: number(j['goal']),
+    hapticStrength: number(j['hapticStrength'] ?? 35).clamp(1, 100),
     theme: j['theme'] as String? ?? 'system',
     sound: j['sound'] != false,
     haptics: j['haptics'] != false,

@@ -62,7 +62,7 @@ public class MainActivity extends FlutterActivity {
                     try {String value = repo.timerSnapshot();runOnUiThread(() -> {applyAppearance();result.success(value);});}
                     catch (Exception ex) {runOnUiThread(() -> result.error("poll", "计时状态读取失败", null));}
                 });break;
-                case "haptic": Haptics.perform(this,repo.settings().optBoolean("haptics",true),(String)call.arguments);result.success(null);break;
+                case "haptic": Haptics.perform(this,repo.settings().optBoolean("haptics",true),repo.settings().optInt("hapticStrength",Haptics.DEFAULT_STRENGTH),(String)call.arguments);result.success(null);break;
                 case "export": exportData((String)call.arguments);result.success(null);break;
                 case "import": importData();result.success(null);break;
                 case "minimize": moveTaskToBack(true);result.success(null);break;

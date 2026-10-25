@@ -28,6 +28,7 @@ public final class Repository {
         try { state = new JSONObject(prefs.getString("state", "")); if (state.optInt("schemaVersion") != 1) throw new Exception(); }
         catch (Exception ex) { state = defaults(); }
         try {
+            if (!settings().has("hapticStrength")) { settings().put("hapticStrength", 35); save(); }
             JSONObject a = active();
             // A powered-off device is not study time. Recover only the last checkpoint.
             if (a != null && a.optBoolean("running") && a.optInt("bootCount", -1) != bootCount()) {
@@ -40,7 +41,7 @@ public final class Repository {
     private int bootCount() { return Settings.Global.getInt(ctx.getContentResolver(), "boot_count", -1); }
     private static JSONObject object(String value) { try {return new JSONObject(value);}catch(Exception e){throw new IllegalStateException(e);} }
     private static JSONObject defaults() {
-        return object("{\"schemaVersion\":1,\"selectedTaskId\":\"learn\",\"active\":null,\"sessions\":[],\"settings\":{\"goal\":120,\"theme\":\"system\",\"sound\":true,\"haptics\":true,\"keepAwake\":false},\"tasks\":[{\"id\":\"learn\",\"title\":\"深度学习\",\"color\":\"#087dff\",\"icon\":\"book\",\"mode\":\"down\",\"minutes\":25,\"done\":false},{\"id\":\"read\",\"title\":\"阅读与思考\",\"color\":\"#8b70e8\",\"icon\":\"read\",\"mode\":\"up\",\"minutes\":25,\"done\":false},{\"id\":\"english\",\"title\":\"英语练习\",\"color\":\"#ed9b45\",\"icon\":\"language\",\"mode\":\"down\",\"minutes\":30,\"done\":false}]}");
+        return object("{\"schemaVersion\":1,\"selectedTaskId\":\"learn\",\"active\":null,\"sessions\":[],\"settings\":{\"goal\":120,\"theme\":\"system\",\"sound\":true,\"haptics\":true,\"hapticStrength\":35,\"keepAwake\":false},\"tasks\":[{\"id\":\"learn\",\"title\":\"深度学习\",\"color\":\"#087dff\",\"icon\":\"book\",\"mode\":\"down\",\"minutes\":25,\"done\":false},{\"id\":\"read\",\"title\":\"阅读与思考\",\"color\":\"#8b70e8\",\"icon\":\"read\",\"mode\":\"up\",\"minutes\":25,\"done\":false},{\"id\":\"english\",\"title\":\"英语练习\",\"color\":\"#ed9b45\",\"icon\":\"language\",\"mode\":\"down\",\"minutes\":30,\"done\":false}]}");
     }
     private void save() { if (!prefs.edit().putString("state", state.toString()).commit()) throw new IllegalStateException("本机存储失败，请检查可用空间"); }
     public synchronized JSONObject active() { return state.optJSONObject("active"); }
@@ -130,6 +131,7 @@ public final class Repository {
                 case "setting": {
                     String key = p.getString("key");require(settings().has(key), "未知设置");
                     if ("goal".equals(key)) {double v = p.optDouble("value");require(v == Math.floor(v) && v >= 5 && v <= 1440, "每日目标为 5–1440 分钟");}
+                    else if ("hapticStrength".equals(key)) {double v = p.optDouble("value");require(p.get("value") instanceof Number && v == Math.floor(v) && v >= 1 && v <= 100, "触感强度为 1–100");}
                     else if ("theme".equals(key)) require("|light|dark|system|".contains("|" + p.optString("value") + "|"), "主题无效");
                     else require(p.get("value") instanceof Boolean, "设置值无效");
                     settings().put(key, p.get("value")); break;
@@ -166,6 +168,13 @@ public final class Repository {
         }
         JSONObject cfg = raw.getJSONObject("settings");double goal = cfg.optDouble("goal");require(goal == Math.floor(goal) && goal >= 5 && goal <= 1440 && "|light|dark|system|".contains("|" + cfg.optString("theme") + "|"), "备份设置无效");
         JSONObject cleanSettings = new JSONObject().put("goal", (int) goal).put("theme", cfg.getString("theme")).put("sound", cfg.optBoolean("sound", true)).put("haptics", cfg.optBoolean("haptics", true)).put("keepAwake", cfg.optBoolean("keepAwake"));
+        int strength = 35;
+        if (cfg.has("hapticStrength")) {
+            double value = cfg.optDouble("hapticStrength");
+            require(cfg.get("hapticStrength") instanceof Number && value == Math.floor(value) && value >= 1 && value <= 100, "备份触感强度无效");
+            strength = (int) value;
+        }
+        cleanSettings.put("hapticStrength", strength);
         return new JSONObject().put("schemaVersion", 1).put("tasks", cleanTasks).put("sessions", cleanRecords).put("settings", cleanSettings).put("active", JSONObject.NULL).put("selectedTaskId", selected);
     }
     public synchronized String csv() throws Exception {

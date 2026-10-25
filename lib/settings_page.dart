@@ -65,13 +65,21 @@ class SettingsPage extends StatelessWidget {
                 context,
                 Icons.vibration_rounded,
                 '触感反馈',
-                '应用内独立控制，开启后立即轻振',
-                border: false,
+                '轻短的按键触感，应用内独立控制',
                 toggled: settings.haptics,
                 onTap: () => controller.command('setting', {
                   'key': 'haptics',
                   'value': !settings.haptics,
                 }),
+              ),
+              _row(
+                context,
+                Icons.tune_rounded,
+                '触感强度',
+                '调整轻重，松手即可体验',
+                value: '${settings.hapticStrength}%',
+                border: false,
+                onTap: () => _strength(context),
               ),
             ],
           ),
@@ -140,7 +148,7 @@ class SettingsPage extends StatelessWidget {
         ),
         const SizedBox(height: 27),
         Text(
-          '拾光 · 2.0.6\n专注当下，自有回响。',
+          '拾光 · 2.0.7\n专注当下，自有回响。',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 10, color: p.muted, height: 2),
         ),
@@ -257,6 +265,11 @@ class SettingsPage extends StatelessWidget {
     useSafeArea: true,
     builder: (_) => GoalEditor(controller: controller),
   );
+  Future<void> _strength(BuildContext context) => showModalBottomSheet<void>(
+    context: context,
+    useSafeArea: true,
+    builder: (_) => HapticStrengthEditor(controller: controller),
+  );
   Future<void> _theme(BuildContext context) async {
     final value = await showModalBottomSheet<String>(
       context: context,
@@ -324,6 +337,104 @@ class SettingsPage extends StatelessWidget {
     '通知权限用于后台计时与完成提醒；导入导出通过系统文件选择器完成，不需要读取全部文件的权限。',
     '当前任务 ${controller.state.tasks.length} 个，专注记录 ${controller.state.sessions.length} 条。',
   ]);
+}
+
+class HapticStrengthEditor extends StatefulWidget {
+  final FocusController controller;
+  const HapticStrengthEditor({super.key, required this.controller});
+
+  @override
+  State<HapticStrengthEditor> createState() => _HapticStrengthEditorState();
+}
+
+class _HapticStrengthEditorState extends State<HapticStrengthEditor> {
+  late double strength = widget.controller.state.settings.hapticStrength
+      .toDouble();
+
+  Future<void> save(double value) async {
+    final saved = await widget.controller.command('setting', {
+      'key': 'hapticStrength',
+      'value': value.round(),
+    });
+    if (!saved && mounted) {
+      setState(
+        () => strength = widget.controller.state.settings.hapticStrength
+            .toDouble(),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: widget.controller,
+    builder: (context, _) {
+      final c = widget.controller, p = AppColors.of(context);
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SectionTitle('触感强度'),
+              Text(
+                '${strength.round()}%',
+                style: TextStyle(fontSize: 34, color: p.ink),
+              ),
+              const SizedBox(height: 8),
+              Slider(
+                value: strength,
+                min: 1,
+                max: 100,
+                activeColor: p.blue,
+                inactiveColor: p.well,
+                onChanged: c.busy
+                    ? null
+                    : (value) =>
+                          setState(() => strength = value.roundToDouble()),
+                onChangeEnd: c.busy ? null : save,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('轻柔', style: TextStyle(fontSize: 12, color: p.muted)),
+                  Text('明显', style: TextStyle(fontSize: 12, color: p.muted)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                c.state.settings.haptics
+                    ? '自动保存，松手即可感受当前强度'
+                    : '触感反馈已关闭，开启后使用此强度',
+                style: TextStyle(fontSize: 12, color: p.muted),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: c.busy
+                        ? null
+                        : () {
+                            setState(() => strength = 35);
+                            save(35);
+                          },
+                    child: const Text('恢复默认'),
+                  ),
+                  const Spacer(),
+                  FilledButton.icon(
+                    onPressed: c.busy || !c.state.settings.haptics
+                        ? null
+                        : () => c.feedback(),
+                    icon: const Icon(Icons.touch_app_outlined, size: 18),
+                    label: const Text('轻触体验'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class GoalEditor extends StatefulWidget {
@@ -413,7 +524,7 @@ class _GoalEditorState extends State<GoalEditor> {
   );
 }
 
-Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.0.6', [
+Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.0.7', [
   '用一段段专注时间，积累看得见的成长。',
   '后台与锁屏\n开始计时后会显示常驻通知，可以暂停、继续或结束。允许通知以接收完成提醒。系统限制后台运行时，请在手机设置中允许拾光后台活动。',
   '计时与统计\n新计时有效专注超过 10 秒才生成记录，暂停时间不累计。倒计时结束按设定时长保存，正计时单次最多记录 24 小时。跨日专注按实际区间分配，累计次数只计一次。日均为首次专注日至今的总时长除以自然日数，包含未专注日。',

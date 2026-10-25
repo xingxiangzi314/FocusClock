@@ -25,6 +25,69 @@ Future<FocusController> launch(
 }
 
 void main() {
+  testWidgets('触感强度保存后立即体验、重新打开保留并可恢复默认', (tester) async {
+    final gateway = TestGateway();
+    final c = await launch(tester, gateway);
+    expect(c.state.settings.hapticStrength, 35);
+    await tester.tap(find.text('设置').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('触感强度'));
+    await tester.tap(find.text('触感强度'));
+    await tester.pumpAndSettle();
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    final before = gateway.vibrations.length;
+    slider.onChanged!(72);
+    await tester.pump();
+    expect(c.state.settings.hapticStrength, 35);
+    tester.widget<Slider>(find.byType(Slider)).onChangeEnd!(72);
+    await tester.pumpAndSettle();
+    expect(c.state.settings.hapticStrength, 72);
+    expect(gateway.vibrations.length, before + 1);
+    await tester.tap(find.text('轻触体验'));
+    await tester.pumpAndSettle();
+    expect(gateway.vibrations.length, before + 2);
+    Navigator.of(tester.element(find.byType(HapticStrengthEditor))).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('触感强度'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<Slider>(find.byType(Slider)).value, 72);
+    await tester.tap(find.text('恢复默认'));
+    await tester.pumpAndSettle();
+    expect(c.state.settings.hapticStrength, 35);
+    expect(tester.widget<Slider>(find.byType(Slider)).value, 35);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('关闭触感时强度静默保存、失败回退且体验按钮禁用', (tester) async {
+    final gateway = TestGateway();
+    (gateway.data['settings'] as Map)['haptics'] = false;
+    final c = await launch(tester, gateway);
+    await tester.tap(find.text('设置').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('触感强度'));
+    await tester.tap(find.text('触感强度'));
+    await tester.pumpAndSettle();
+    tester.widget<Slider>(find.byType(Slider)).onChanged!(50);
+    await tester.pump();
+    tester.widget<Slider>(find.byType(Slider)).onChangeEnd!(50);
+    await tester.pumpAndSettle();
+    expect(c.state.settings.hapticStrength, 50);
+    expect(gateway.vibrations, isEmpty);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '轻触体验'))
+          .onPressed,
+      isNull,
+    );
+    gateway.fail = true;
+    tester.widget<Slider>(find.byType(Slider)).onChanged!(90);
+    await tester.pump();
+    tester.widget<Slider>(find.byType(Slider)).onChangeEnd!(90);
+    await tester.pumpAndSettle();
+    expect(c.state.settings.hapticStrength, 50);
+    expect(tester.widget<Slider>(find.byType(Slider)).value, 50);
+    expect(gateway.vibrations, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
   for (final populated in [false, true]) {
     testWidgets('统计三卡同屏、周期居中：${populated ? "有记录" : "无记录"}', (tester) async {
       tester.view.padding = const FakeViewPadding(top: 32, bottom: 24);

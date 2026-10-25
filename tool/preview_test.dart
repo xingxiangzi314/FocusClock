@@ -28,6 +28,9 @@ void main() {
         await (FontLoader(
           'Roboto',
         )..addFont(Future.value(ByteData.sublistView(bytes)))).load();
+        await (FontLoader(
+          'Ahem',
+        )..addFont(Future.value(ByteData.sublistView(bytes)))).load();
       });
     }
     if (iconPath.isNotEmpty) {
@@ -129,6 +132,12 @@ void main() {
     await tester.tap(find.text('设置').last);
     await tester.pumpAndSettle();
     await capture('settings');
+    await tester.ensureVisible(find.text('触感强度'));
+    await tester.tap(find.text('触感强度'));
+    await tester.pumpAndSettle();
+    await capture('haptic-strength');
+    Navigator.of(tester.element(find.byType(Slider))).pop();
+    await tester.pumpAndSettle();
     final header = tester.getRect(find.byType(PageHeader));
     await tester.drag(
       find.byType(SingleChildScrollView).first,
