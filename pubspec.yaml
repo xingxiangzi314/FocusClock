@@ -1,0 +1,17 @@
+name: shiguang_focus
+description: 拾光，一个离线学习计时器。
+publish_to: none
+version: 2.0.6+15
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+flutter:
+  uses-material-design: true
+

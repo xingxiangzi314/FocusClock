@@ -1,0 +1,21 @@
+.gradle/
+.idea/
+.dart_tool/
+.flutter-plugins-dependencies
+local.properties
+android/local.properties
+android/.gradle/
+android/app/build/
+build/
+*.apk
+*.idsig
+# Widget Preview related
+.widget_preview/
+
+# Local signing material and machine-specific IDE paths stay on this computer.
+*.keystore
+*.jks
+*.log
+.vscode/settings.json
+.vscode/launch.json
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java

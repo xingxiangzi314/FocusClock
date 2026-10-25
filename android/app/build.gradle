@@ -1,0 +1,33 @@
+plugins {
+    id 'com.android.application'
+    id 'dev.flutter.flutter-gradle-plugin'
+}
+android {
+    namespace 'com.shiguang.focus'
+    compileSdk 36
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    defaultConfig {
+        applicationId 'com.shiguang.focus'
+        minSdk 26
+        targetSdk 35
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+    signingConfigs {
+        localDevelopment {
+            storeFile file('../../signing/debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+    buildTypes {
+        debug { signingConfig signingConfigs.localDevelopment }
+        release {
+            signingConfig signingConfigs.localDevelopment
+            minifyEnabled true
+            shrinkResources true
+        }
+    }
+}
+flutter { source '../..' }
