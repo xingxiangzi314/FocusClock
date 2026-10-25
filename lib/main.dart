@@ -34,6 +34,8 @@ class _ShiguangAppState extends State<ShiguangApp> {
   late final FocusController controller;
   final messenger = GlobalKey<ScaffoldMessengerState>();
   StreamSubscription<String>? subscription;
+  final lightTheme = focusTheme(Brightness.light);
+  final darkTheme = focusTheme(Brightness.dark);
   @override
   void initState() {
     super.initState();
@@ -67,8 +69,17 @@ class _ShiguangAppState extends State<ShiguangApp> {
       locale: const Locale('zh', 'CN'),
       supportedLocales: const [Locale('zh', 'CN')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      theme: focusTheme(Brightness.light),
-      darkTheme: focusTheme(Brightness.dark),
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeAnimationDuration:
+          WidgetsBinding
+              .instance
+              .platformDispatcher
+              .accessibilityFeatures
+              .disableAnimations
+          ? Duration.zero
+          : const Duration(milliseconds: 280),
+      themeAnimationCurve: Curves.easeOutCubic,
       themeMode: switch (controller.state.settings.theme) {
         'dark' => ThemeMode.dark,
         'light' => ThemeMode.light,
@@ -77,6 +88,33 @@ class _ShiguangAppState extends State<ShiguangApp> {
       home: _Home(controller: controller, initialPage: widget.initialPage),
     ),
   );
+}
+
+// Keep scroll positions and page state while isolating hidden pages from the
+// per-frame theme interpolation (especially the annual heatmap).
+class _RetainedPage extends StatefulWidget {
+  final bool active;
+  final Widget Function() builder;
+  const _RetainedPage({required this.active, required this.builder});
+  @override
+  State<_RetainedPage> createState() => _RetainedPageState();
+}
+
+class _RetainedPageState extends State<_RetainedPage> {
+  ThemeData? theme;
+  Widget? child;
+  @override
+  Widget build(BuildContext context) {
+    if (widget.active) {
+      theme = Theme.of(context);
+      child = widget.builder();
+    }
+    if (child == null) return const SizedBox.shrink();
+    return TickerMode(
+      enabled: widget.active,
+      child: Theme(data: theme!, child: child!),
+    );
+  }
 }
 
 class _Home extends StatefulWidget {
@@ -161,9 +199,18 @@ class _HomeState extends State<_Home> with SingleTickerProviderStateMixin {
                           child: IndexedStack(
                             index: page,
                             children: [
-                              TodoPage(controller: c),
-                              StatsPage(controller: c),
-                              SettingsPage(controller: c),
+                              _RetainedPage(
+                                active: page == 0,
+                                builder: () => TodoPage(controller: c),
+                              ),
+                              _RetainedPage(
+                                active: page == 1,
+                                builder: () => StatsPage(controller: c),
+                              ),
+                              _RetainedPage(
+                                active: page == 2,
+                                builder: () => SettingsPage(controller: c),
+                              ),
                             ],
                           ),
                         ),

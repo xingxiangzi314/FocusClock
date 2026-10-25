@@ -19,24 +19,33 @@ const taskIcons = <String, IconData>{
 Color taskColor(String hex) =>
     Color(0xff000000 | int.parse(hex.substring(1), radix: 16));
 
-class AppColors {
-  final bool dark;
-  const AppColors(this.dark);
+class AppColors extends ThemeExtension<AppColors> {
+  final double _darkness;
+  const AppColors(bool dark) : _darkness = dark ? 1 : 0;
+  const AppColors._(this._darkness);
+  bool get dark => _darkness >= .5;
   factory AppColors.of(BuildContext context) =>
+      Theme.of(context).extension<AppColors>() ??
       AppColors(Theme.of(context).brightness == Brightness.dark);
-  Color get background =>
-      dark ? const Color(0xff14171d) : const Color(0xfff0eff2);
-  Color get card => dark ? const Color(0xff20242c) : const Color(0xfffffcfd);
-  Color get well => dark ? const Color(0xff2a2f39) : const Color(0xffefedf0);
-  Color get ink => dark ? const Color(0xfff3f4f8) : const Color(0xff191c22);
-  Color get muted => dark ? const Color(0xff9ba2af) : const Color(0xff7d808b);
-  Color get line => dark ? const Color(0xff30353e) : const Color(0xffe9e6eb);
-  Color get blue => dark ? const Color(0xff409aff) : const Color(0xff087dff);
-  Color get blueSoft =>
-      dark ? const Color(0xff203957) : const Color(0xffe6f0ff);
-  Color get coral => dark ? const Color(0xff422d33) : const Color(0xffffe5e2);
-  Color get coralInk =>
-      dark ? const Color(0xffffaaa0) : const Color(0xffa3413f);
+  Color blend(int light, int dark) =>
+      Color.lerp(Color(light), Color(dark), _darkness)!;
+  Color get background => blend(0xfff0eff2, 0xff14171d);
+  Color get card => blend(0xfffffcfd, 0xff20242c);
+  Color get well => blend(0xffefedf0, 0xff2a2f39);
+  Color get ink => blend(0xff191c22, 0xfff3f4f8);
+  Color get muted => blend(0xff7d808b, 0xff9ba2af);
+  Color get line => blend(0xffe9e6eb, 0xff30353e);
+  Color get blue => blend(0xff087dff, 0xff409aff);
+  Color get blueSoft => blend(0xffe6f0ff, 0xff203957);
+  Color get coral => blend(0xffffe5e2, 0xff422d33);
+  Color get coralInk => blend(0xffa3413f, 0xffffaaa0);
+
+  @override
+  AppColors copyWith({bool? dark}) => dark == null ? this : AppColors(dark);
+  @override
+  AppColors lerp(covariant AppColors? other, double t) => other == null
+      ? this
+      : AppColors._(_darkness + (other._darkness - _darkness) * t);
 }
 
 ThemeData focusTheme(Brightness brightness) {
@@ -51,6 +60,7 @@ ThemeData focusTheme(Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
+    extensions: [p],
     colorScheme: scheme,
     scaffoldBackgroundColor: p.background,
     textTheme: ThemeData(
@@ -184,9 +194,10 @@ class PageHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.normal,
+                    color: AppColors.of(context).ink,
                   ),
                 ),
                 if (subtitle != null) ...[
@@ -295,7 +306,11 @@ class SectionTitle extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: TextStyle(fontSize: fontSize, fontWeight: fontWeight),
+            style: TextStyle(
+              fontSize: fontSize,
+              fontWeight: fontWeight,
+              color: AppColors.of(context).ink,
+            ),
           ),
         ),
         if (trailing != null) trailing!,

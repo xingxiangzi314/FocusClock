@@ -132,6 +132,17 @@ void main() {
     await tester.tap(find.text('设置').last);
     await tester.pumpAndSettle();
     await capture('settings');
+    await controller.command('setting', {'key': 'theme', 'value': 'dark'});
+    await tester.pump();
+    await capture('theme-00');
+    for (var frame = 1; frame <= 14; frame++) {
+      await tester.pump(const Duration(milliseconds: 20));
+      await capture('theme-${frame.toString().padLeft(2, '0')}');
+    }
+    await tester.pumpAndSettle();
+    await capture('settings-dark');
+    await controller.command('setting', {'key': 'theme', 'value': 'light'});
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('触感强度'));
     await tester.tap(find.text('触感强度'));
     await tester.pumpAndSettle();

@@ -7,12 +7,24 @@
     <application android:label="拾光" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
         android:theme="@style/AppTheme" android:allowBackup="false" android:supportsRtl="true"
         android:usesCleartextTraffic="false" android:enableOnBackInvokedCallback="true">
-        <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop"
+        <activity android:name=".FocusActivity" android:exported="true" android:launchMode="singleTop"
             android:hardwareAccelerated="true" android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode">
             <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/AppTheme" />
-            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity>
+        <!-- Keep the old launcher component name for existing home-screen shortcuts. -->
+        <activity-alias android:name=".MainActivity" android:targetActivity=".FocusActivity"
+            android:enabled="true" android:exported="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherLight" android:targetActivity=".FocusActivity"
+            android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_light" android:roundIcon="@mipmap/ic_launcher_light">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".LauncherDark" android:targetActivity=".FocusActivity"
+            android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_dark" android:roundIcon="@mipmap/ic_launcher_dark">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity-alias>
         <meta-data android:name="flutterEmbedding" android:value="2" />
         <service android:name=".FocusService" android:exported="false" android:foregroundServiceType="specialUse" android:stopWithTask="false">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-initiated study focus stopwatch and countdown with persistent notification controls and completion reminder" />

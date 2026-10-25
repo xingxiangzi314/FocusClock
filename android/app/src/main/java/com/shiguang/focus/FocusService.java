@@ -59,7 +59,7 @@ public class FocusService extends Service {
             return true;
         }
     }
-    private PendingIntent openApp() {return PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP),PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);}
+    private PendingIntent openApp() {return PendingIntent.getActivity(this,0,new Intent(this,FocusActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP),PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);}
     private PendingIntent action(String a, int id) {return PendingIntent.getService(this,id,new Intent(this,FocusService.class).setAction(a),PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);}
     private Notification notification() {
         synchronized (repo) {
