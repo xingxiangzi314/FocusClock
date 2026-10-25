@@ -25,6 +25,72 @@ AppColors palette(WidgetTester tester) =>
     AppColors.of(tester.element(find.byType(SettingsPage)));
 
 void main() {
+  testWidgets('连续快速切换100次不重置计时或页面状态', (tester) async {
+    final c = await mount(tester);
+    await c.command('start');
+    final activeTask = c.state.active!.taskId;
+    final pageState = tester.state(find.byType(SettingsPage));
+    for (var i = 0; i < 100; i++) {
+      final theme = ['dark', 'light', 'system'][i % 3];
+      expect(
+        await c.command('setting', {'key': 'theme', 'value': theme}),
+        isTrue,
+      );
+      await tester.pump(Duration(milliseconds: i % 7 == 0 ? 80 : 8));
+      expect(tester.takeException(), isNull);
+      expect(c.state.active!.taskId, activeTask);
+      expect(c.state.active!.running, isTrue);
+      expect(tester.state(find.byType(SettingsPage)), same(pageState));
+    }
+    await tester.pumpAndSettle();
+    expect(c.state.settings.theme, 'dark');
+    expect(palette(tester).card, const AppColors(true).card);
+  });
+
+  testWidgets('连点主题入口与选项只打开一个面板且只保存一次', (tester) async {
+    final c = await mount(tester);
+    await tester.ensureVisible(find.text('外观主题'));
+    final row = tester.widget<InkWell>(
+      find
+          .ancestor(of: find.text('外观主题'), matching: find.byType(InkWell))
+          .first,
+    );
+    row.onTap!();
+    row.onTap!();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, '深色'), findsOneWidget);
+    final pick = tester
+        .widget<ListTile>(find.widgetWithText(ListTile, '深色'))
+        .onTap!;
+    final gateway = c.gateway as TestGateway;
+    final before = gateway.calls.where((name) => name == 'setting').length;
+    pick();
+    pick();
+    await tester.pumpAndSettle();
+    expect(c.state.settings.theme, 'dark');
+    expect(gateway.calls.where((name) => name == 'setting').length, before + 1);
+    row.onTap!();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, '明亮'), findsOneWidget);
+    await tester.tap(find.text('明亮'));
+    await tester.pumpAndSettle();
+    expect(c.state.settings.theme, 'light');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('面板收起期间销毁界面不会提交迟到的主题操作', (tester) async {
+    final c = await mount(tester);
+    await tester.ensureVisible(find.text('外观主题'));
+    await tester.tap(find.text('外观主题'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色'));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    expect(c.state.settings.theme, 'light');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('卡片与文字连续渐变，中途反向切换从当前颜色继续', (tester) async {
     final c = await mount(tester);
     const light = AppColors(false), dark = AppColors(true);

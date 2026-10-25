@@ -4,9 +4,16 @@ import 'package:flutter/services.dart';
 import 'controller.dart';
 import 'ui.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   final FocusController controller;
   const SettingsPage({super.key, required this.controller});
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  FocusController get controller => widget.controller;
+  bool _themePending = false;
   @override
   Widget build(BuildContext context) {
     final p = AppColors.of(context), settings = controller.state.settings;
@@ -148,7 +155,7 @@ class SettingsPage extends StatelessWidget {
         ),
         const SizedBox(height: 27),
         Text(
-          '拾光 · 2.0.8\n专注当下，自有回响。',
+          '拾光 · 2.0.9\n专注当下，自有回响。',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 10, color: p.muted, height: 2),
         ),
@@ -271,50 +278,58 @@ class SettingsPage extends StatelessWidget {
     builder: (_) => HapticStrengthEditor(controller: controller),
   );
   Future<void> _theme(BuildContext context) async {
-    final navigator = Navigator.of(context);
-    final route = ModalBottomSheetRoute<String>(
-      isScrollControlled: false,
-      capturedThemes: InheritedTheme.capture(
-        from: context,
-        to: navigator.context,
-      ),
-      sheetAnimationStyle: MediaQuery.disableAnimationsOf(context)
-          ? AnimationStyle.noAnimation
-          : const AnimationStyle(reverseDuration: Duration(milliseconds: 120)),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 22),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SectionTitle('外观主题'),
-              for (final entry in const {
-                'system': '跟随系统',
-                'light': '明亮',
-                'dark': '深色',
-              }.entries)
-                ListTile(
-                  title: Text(entry.value),
-                  trailing: controller.state.settings.theme == entry.key
-                      ? const Icon(Icons.check_rounded)
-                      : null,
-                  onTap: () {
-                    if (ModalRoute.of(ctx)?.isCurrent ?? false)
-                      Navigator.pop(ctx, entry.key);
-                  },
-                ),
-            ],
+    if (_themePending || controller.busy) return;
+    _themePending = true;
+    try {
+      final navigator = Navigator.of(context);
+      final route = ModalBottomSheetRoute<String>(
+        isScrollControlled: false,
+        capturedThemes: InheritedTheme.capture(
+          from: context,
+          to: navigator.context,
+        ),
+        sheetAnimationStyle: MediaQuery.disableAnimationsOf(context)
+            ? AnimationStyle.noAnimation
+            : const AnimationStyle(
+                reverseDuration: Duration(milliseconds: 120),
+              ),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SectionTitle('外观主题'),
+                for (final entry in const {
+                  'system': '跟随系统',
+                  'light': '明亮',
+                  'dark': '深色',
+                }.entries)
+                  ListTile(
+                    title: Text(entry.value),
+                    trailing: controller.state.settings.theme == entry.key
+                        ? const Icon(Icons.check_rounded)
+                        : null,
+                    onTap: () {
+                      if (ModalRoute.of(ctx)?.isCurrent ?? false)
+                        Navigator.pop(ctx, entry.key);
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
-      ),
-    );
-    final value = await navigator.push(route);
-    // Start the theme fade after the outgoing sheet leaves the overlay.
-    await route.completed;
-    if (context.mounted &&
-        value != null &&
-        value != controller.state.settings.theme)
-      await controller.command('setting', {'key': 'theme', 'value': value});
+      );
+      final value = await navigator.push(route);
+      // Start the theme fade after the outgoing sheet leaves the overlay.
+      await route.completed;
+      if (context.mounted &&
+          value != null &&
+          value != controller.state.settings.theme)
+        await controller.command('setting', {'key': 'theme', 'value': value});
+    } finally {
+      _themePending = false;
+    }
   }
 
   Future<void> _restore(BuildContext context) async {
@@ -540,7 +555,7 @@ class _GoalEditorState extends State<GoalEditor> {
   );
 }
 
-Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.0.8', [
+Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.0.9', [
   '用一段段专注时间，积累看得见的成长。',
   '后台与锁屏\n开始计时后会显示常驻通知，可以暂停、继续或结束。允许通知以接收完成提醒。系统限制后台运行时，请在手机设置中允许拾光后台活动。',
   '计时与统计\n新计时有效专注超过 10 秒才生成记录，暂停时间不累计。倒计时结束按设定时长保存，正计时单次最多记录 24 小时。跨日专注按实际区间分配，累计次数只计一次。日均为首次专注日至今的总时长除以自然日数，包含未专注日。',

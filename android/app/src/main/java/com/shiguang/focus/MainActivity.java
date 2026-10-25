@@ -2,20 +2,13 @@ package com.shiguang.focus;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.app.ActivityManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 import android.view.WindowManager;
 import org.json.JSONObject;
 import java.io.*;
@@ -33,39 +26,8 @@ public class MainActivity extends FlutterActivity {
     private MethodChannel channel;
     private String pendingExport;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
-    private final Handler appearanceHandler = new Handler(Looper.getMainLooper());
     private Boolean appliedAwake;
     private boolean barsConfigured;
-    private String scheduledIcon;
-    private boolean scheduledDark;
-    private final Bitmap[] taskIcons = new Bitmap[2];
-    private final Runnable changeIcon = () -> {
-        final String preference = scheduledIcon;
-        final boolean dark = scheduledDark;
-        if (worker.isShutdown()) return;
-        worker.execute(() -> {
-            try {
-                int index = dark ? 1 : 0;
-                if (taskIcons[index] == null) {
-                    Drawable drawable = getDrawable(dark ? R.mipmap.ic_launcher_dark : R.mipmap.ic_launcher_light);
-                    Bitmap icon = Bitmap.createBitmap(144, 144, Bitmap.Config.ARGB_8888);
-                    drawable.setBounds(0, 0, 144, 144);
-                    drawable.draw(new Canvas(icon));
-                    taskIcons[index] = icon;
-                }
-                final Bitmap icon = taskIcons[index];
-                runOnUiThread(() -> {
-                    if (!isDestroyed() && preference.equals(scheduledIcon) && dark == scheduledDark)
-                        setTaskDescription(new ActivityManager.TaskDescription("拾光", icon, dark ? 0xff14171d : 0xfff0eff2));
-                });
-                LauncherIcons.apply(getApplicationContext(), preference);
-            }
-            catch (RuntimeException ex) {
-                Log.w("FocusIcon", "Launcher icon update failed", ex);
-                runOnUiThread(() -> {if (preference.equals(scheduledIcon)) scheduledIcon = null;});
-            }
-        });
-    };
 
     @Override public void onCreate(Bundle state) {
         repo = Repository.get(this);
@@ -83,13 +45,15 @@ public class MainActivity extends FlutterActivity {
                     final String name = call.argument("name"), params = call.argument("params");
                     worker.execute(() -> {
                         try {
-                            JSONObject payload = new JSONObject(repo.command(name, new JSONObject(params == null ? "{}" : params)));
+                            JSONObject arguments = new JSONObject(params == null ? "{}" : params);
+                            JSONObject payload = new JSONObject(repo.command(name, arguments));
+                            boolean refreshSettingsNotification = "setting".equals(name) && !"theme".equals(arguments.optString("key"));
                             runOnUiThread(() -> {
                                 if (payload.has("error")) {result.error("command", payload.optString("error"), null);return;}
                                 if (!"snapshot".equals(name)) {
                                     applyAppearance();
                                     if ("start".equals(name) || "pause".equals(name) || "finish".equals(name) || "discard".equals(name)) updateService();
-                                    if ("setting".equals(name) && repo.active() != null) updateService();
+                                    if (refreshSettingsNotification && repo.active() != null) updateService();
                                     if ("start".equals(name)) requestNotificationPermission();
                                 }
                                 result.success(payload.toString());
@@ -135,16 +99,6 @@ public class MainActivity extends FlutterActivity {
             getWindow().setStatusBarColor(Color.TRANSPARENT);
             getWindow().setNavigationBarColor(Color.TRANSPARENT);
             barsConfigured = true;
-        }
-        String theme = repo.settings().optString("theme", "system");
-        boolean dark = "dark".equals(theme) || (!"light".equals(theme) && (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES);
-        if (!theme.equals(scheduledIcon) || dark != scheduledDark) {
-            scheduledIcon = theme;
-            scheduledDark = dark;
-            appearanceHandler.removeCallbacks(changeIcon);
-            // Launcher refreshes can be expensive on vendor systems. Keep them
-            // off the UI thread and after the Flutter color transition.
-            appearanceHandler.postDelayed(changeIcon, 400);
         }
     }
     private void refresh() {if (channel != null) channel.invokeMethod("refresh",null);}
@@ -202,5 +156,5 @@ public class MainActivity extends FlutterActivity {
     @Override protected void onResume() {super.onResume();applyAppearance();}
     @Override public void onConfigurationChanged(Configuration config) {super.onConfigurationChanged(config);applyAppearance();}
     @Override public void cleanUpFlutterEngine(FlutterEngine engine) {if (channel != null) {channel.setMethodCallHandler(null);channel = null;}super.cleanUpFlutterEngine(engine);}
-    @Override protected void onDestroy() {appearanceHandler.removeCallbacks(changeIcon);worker.shutdown();super.onDestroy();}
+    @Override protected void onDestroy() {worker.shutdown();super.onDestroy();}
 }

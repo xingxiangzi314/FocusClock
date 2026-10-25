@@ -12,17 +12,19 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode">
             <meta-data android:name="io.flutter.embedding.android.NormalTheme" android:resource="@style/AppTheme" />
         </activity>
-        <!-- Keep the old launcher component name for existing home-screen shortcuts. -->
+        <!-- Static compatibility entries: Android persists enabled overrides from
+             2.0.8. Keep all three names launchable after upgrade without changing
+             component states at runtime. Every entry uses the original icon. -->
         <activity-alias android:name=".MainActivity" android:targetActivity=".FocusActivity"
             android:enabled="true" android:exported="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity-alias>
         <activity-alias android:name=".LauncherLight" android:targetActivity=".FocusActivity"
-            android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_light" android:roundIcon="@mipmap/ic_launcher_light">
+            android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity-alias>
         <activity-alias android:name=".LauncherDark" android:targetActivity=".FocusActivity"
-            android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher_dark" android:roundIcon="@mipmap/ic_launcher_dark">
+            android:enabled="false" android:exported="true" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">
             <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
         </activity-alias>
         <meta-data android:name="flutterEmbedding" android:value="2" />
