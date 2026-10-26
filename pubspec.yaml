@@ -1,7 +1,7 @@
 name: shiguang_focus
 description: 拾光，一个离线学习计时器。
 publish_to: none
-version: 2.0.9+18
+version: 2.1.0+19
 environment:
   sdk: '>=3.11.0 <4.0.0'
 dependencies:

@@ -6,6 +6,7 @@ project=Path(__file__).resolve().parent.parent
 root=project/'build/repository-checks'
 src=root/'src'
 files={
+'com/shiguang/focus/HeatmapWidget.java': 'package com.shiguang.focus; public class HeatmapWidget { public static int updates; public static void requestUpdate(android.content.Context context){updates++;} }',
 'android/content/Context.java': '''package android.content;
 public class Context {
  public static final int MODE_PRIVATE=0;
@@ -100,6 +101,18 @@ public class RepositoryTest {
   ok(r.settings().getInt("hapticStrength")==35&&snapshot(r).getJSONArray("sessions").length()==oldCount,"old installation migration preserves records");
   command(r,"reset","{}");ok(r.settings().getInt("hapticStrength")==35,"reset restores default strength");
 
+  HeatmapWidget.updates=0;
+  command(r,"setting","{\"key\":\"theme\",\"value\":\"dark\"}");ok(HeatmapWidget.updates==1,"theme change refreshes widget");
+  command(r,"setting","{\"key\":\"goal\",\"value\":60}");ok(HeatmapWidget.updates==1,"unrelated preference does not rebuild widget");
+  command(r,"start","{}");TestClock.advance(1600000);
+  JSONObject widget=new JSONObject(r.widgetSnapshot());
+  ok(r.active()!=null&&widget.getJSONArray("sessions").length()==0&&!widget.has("tasks")&&widget.getString("theme").equals("dark"),"widget snapshot is passive and excludes task data");
+  int widgetBefore=HeatmapWidget.updates;r.tick();ok(r.active()==null&&HeatmapWidget.updates==widgetBefore+1,"automatic countdown completion refreshes widget");
+  String widgetRecord=snapshot(r).getJSONArray("sessions").getJSONObject(0).getString("id");widgetBefore=HeatmapWidget.updates;
+  command(r,"deleteSession",new JSONObject().put("id",widgetRecord).toString());ok(HeatmapWidget.updates==widgetBefore+1,"deleting record refreshes widget");
+  command(r,"start","{}");TestClock.advance(20000);widgetBefore=HeatmapWidget.updates;command(r,"finish","{}");ok(HeatmapWidget.updates==widgetBefore+1,"manual finish refreshes widget");
+  JSONObject widgetBackup=new JSONObject(r.backup());widgetBefore=HeatmapWidget.updates;command(r,"restore",new JSONObject().put("data",widgetBackup).toString());ok(HeatmapWidget.updates==widgetBefore+1,"restore refreshes widget");
+  widgetBefore=HeatmapWidget.updates;command(r,"reset","{}");ok(HeatmapWidget.updates==widgetBefore+1,"reset refreshes widget");
   System.out.println("ALL "+checks+" NATIVE REPOSITORY CHECKS PASSED");
  }
 }'''

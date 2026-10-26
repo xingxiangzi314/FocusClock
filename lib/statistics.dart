@@ -4,6 +4,21 @@ import 'models.dart';
 
 enum FocusPeriod { day, week, month, year }
 
+/// Zero is a separate empty state; the five positive bands use elapsed hours.
+int heatmapLevel(int ms) => ms <= 0
+    ? 0
+    : ms < 3600000
+    ? 1
+    : ms < 10800000
+    ? 2
+    : ms < 21600000
+    ? 3
+    : ms < 28800000
+    ? 4
+    : 5;
+const heatmapSamples = [0, 1, 3600000, 10800000, 21600000, 28800000];
+const heatmapOpacity = [0.0, .20, .38, .58, .78, 1.0];
+
 extension FocusPeriodLabel on FocusPeriod {
   String get label => ['日', '周', '月', '年'][index];
 }

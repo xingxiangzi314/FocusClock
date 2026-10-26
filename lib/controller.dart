@@ -40,6 +40,33 @@ class FocusController extends ChangeNotifier with WidgetsBindingObserver {
   final FocusGateway gateway;
   FocusState state = const FocusState();
   bool loaded = false, busy = false;
+  String? statisticsDate;
+  int statisticsRequest = 0;
+
+  void openStatisticsDate(String value) {
+    final date = DateTime.tryParse(value);
+    if (_disposed ||
+        date == null ||
+        dayKey(date) != value ||
+        date.year < 2000 ||
+        date.isAfter(dayStart(DateTime.now())))
+      return;
+    statisticsDate = value;
+    statisticsRequest++;
+    notifyListeners();
+  }
+
+  Future<void> _takeWidgetDate() async {
+    try {
+      final value = await AndroidGateway.channel.invokeMethod<String>(
+        'widgetDate',
+      );
+      if (value != null) openStatisticsDate(value);
+    } catch (_) {
+      /* A normal launch has no widget request. */
+    }
+  }
+
   String? loadError;
   final messages = StreamController<String>.broadcast();
   Timer? _timer;
@@ -66,7 +93,12 @@ class FocusController extends ChangeNotifier with WidgetsBindingObserver {
       AndroidGateway.channel.setMethodCallHandler((call) async {
         if (call.method == 'refresh') await reload();
         if (call.method == 'message') message(call.arguments.toString());
+        if (call.method == 'widgetLaunch') {
+          await reload();
+          await _takeWidgetDate();
+        }
       });
+      await _takeWidgetDate();
     }
     await reload();
     if (polling) _startPolling();

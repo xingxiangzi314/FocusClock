@@ -44,6 +44,7 @@ public final class Repository {
         return object("{\"schemaVersion\":1,\"selectedTaskId\":\"learn\",\"active\":null,\"sessions\":[],\"settings\":{\"goal\":120,\"theme\":\"system\",\"sound\":true,\"haptics\":true,\"hapticStrength\":35,\"keepAwake\":false},\"tasks\":[{\"id\":\"learn\",\"title\":\"深度学习\",\"color\":\"#087dff\",\"icon\":\"book\",\"mode\":\"down\",\"minutes\":25,\"done\":false},{\"id\":\"read\",\"title\":\"阅读与思考\",\"color\":\"#8b70e8\",\"icon\":\"read\",\"mode\":\"up\",\"minutes\":25,\"done\":false},{\"id\":\"english\",\"title\":\"英语练习\",\"color\":\"#ed9b45\",\"icon\":\"language\",\"mode\":\"down\",\"minutes\":30,\"done\":false}]}");
     }
     private void save() { if (!prefs.edit().putString("state", state.toString()).commit()) throw new IllegalStateException("本机存储失败，请检查可用空间"); }
+    public synchronized String widgetSnapshot() {return "{\"theme\":" + JSONObject.quote(settings().optString("theme","system")) + ",\"sessions\":" + sessions().toString() + "}";}
     public synchronized JSONObject active() { return state.optJSONObject("active"); }
     public synchronized JSONObject settings() { return state.optJSONObject("settings"); }
     private JSONArray tasks() { return state.optJSONArray("tasks"); }
@@ -72,7 +73,7 @@ public final class Repository {
         try {
             JSONObject a = active();
             if (a != null && a.optBoolean("running")) {
-                if (elapsed() >= limit(a)) { finish(); completed = true; save(); }
+                if (elapsed() >= limit(a)) { finish(); completed = true; save(); HeatmapWidget.requestUpdate(ctx); }
                 else if (SystemClock.elapsedRealtime() - lastCheckpoint >= 30000) { a.put("checkpointMs", elapsed()); save(); lastCheckpoint = SystemClock.elapsedRealtime(); }
             }
         } catch (Exception ex) { android.util.Log.e("Focus", "Timer checkpoint failed", ex); }
@@ -141,7 +142,10 @@ public final class Repository {
                 case "reset": ensureIdle();state = defaults();break;
                 default: throw new IllegalArgumentException("未知操作");
             }
-            save(); return snapshot();
+            save();
+            if ("finish".equals(cmd) || "deleteSession".equals(cmd) || "restore".equals(cmd) || "reset".equals(cmd)
+                || ("setting".equals(cmd) && "theme".equals(p.optString("key")))) HeatmapWidget.requestUpdate(ctx);
+            return snapshot();
         } catch (Exception ex) {return new JSONObjectBuilder().error(ex.getMessage());}
     }
     public static JSONObject validatedBackup(JSONObject raw) throws Exception {

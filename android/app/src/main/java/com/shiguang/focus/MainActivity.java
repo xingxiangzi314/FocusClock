@@ -25,12 +25,14 @@ public class MainActivity extends FlutterActivity {
     private Repository repo;
     private MethodChannel channel;
     private String pendingExport;
+    private String pendingWidgetDate;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private Boolean appliedAwake;
     private boolean barsConfigured;
 
     @Override public void onCreate(Bundle state) {
         repo = Repository.get(this);
+        readWidgetIntent(getIntent());
         super.onCreate(state);
         applyAppearance();
         if (repo.active() != null) updateService();
@@ -70,9 +72,18 @@ public class MainActivity extends FlutterActivity {
                 case "export": exportData((String)call.arguments);result.success(null);break;
                 case "import": importData();result.success(null);break;
                 case "minimize": moveTaskToBack(true);result.success(null);break;
+                case "widgetDate": result.success(pendingWidgetDate);pendingWidgetDate = null;break;
                 default: result.notImplemented();
             }
         });
+    }
+    private void readWidgetIntent(Intent intent) {
+        java.time.LocalDate date = HeatmapModel.launchDate(intent == null ? null : intent.getDataString(), java.time.LocalDate.now());
+        pendingWidgetDate = date == null ? null : date.toString();
+    }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);setIntent(intent);readWidgetIntent(intent);
+        if (pendingWidgetDate != null && channel != null) channel.invokeMethod("widgetLaunch",null);
     }
     private void updateService() {
         try {
@@ -153,8 +164,8 @@ public class MainActivity extends FlutterActivity {
         super.onRequestPermissionsResult(request,permissions,grants);
         if (request == 70 && (grants.length == 0 || grants[0] != PackageManager.PERMISSION_GRANTED)) message("通知未开启，完成提醒可能无法显示。可在系统设置中开启。");
     }
-    @Override protected void onResume() {super.onResume();applyAppearance();}
-    @Override public void onConfigurationChanged(Configuration config) {super.onConfigurationChanged(config);applyAppearance();}
+    @Override protected void onResume() {super.onResume();applyAppearance();HeatmapWidget.requestUpdate(this);}
+    @Override public void onConfigurationChanged(Configuration config) {super.onConfigurationChanged(config);applyAppearance();HeatmapWidget.requestUpdate(this);}
     @Override public void cleanUpFlutterEngine(FlutterEngine engine) {if (channel != null) {channel.setMethodCallHandler(null);channel = null;}super.cleanUpFlutterEngine(engine);}
     @Override protected void onDestroy() {worker.shutdown();super.onDestroy();}
 }

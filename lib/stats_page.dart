@@ -9,17 +9,39 @@ import 'ui.dart';
 
 class StatsPage extends StatefulWidget {
   final FocusController controller;
-  const StatsPage({super.key, required this.controller});
+  final String? requestedDate;
+  final int requestId;
+  const StatsPage({
+    super.key,
+    required this.controller,
+    this.requestedDate,
+    this.requestId = 0,
+  });
   @override
   State<StatsPage> createState() => _StatsPageState();
 }
 
 class _StatsPageState extends State<StatsPage> {
   FocusPeriod period = FocusPeriod.day;
-  DateTime anchor = DateTime.now();
+  late DateTime anchor =
+      DateTime.tryParse(widget.requestedDate ?? '') ?? DateTime.now();
   int recordLimit = 10;
   final scroll = ScrollController();
   FocusController get c => widget.controller;
+  @override
+  void didUpdateWidget(StatsPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.requestId != widget.requestId &&
+        widget.requestedDate != null) {
+      anchor = DateTime.parse(widget.requestedDate!);
+      period = FocusPeriod.day;
+      recordLimit = 10;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && scroll.hasClients) scroll.jumpTo(0);
+      });
+    }
+  }
+
   @override
   void dispose() {
     scroll.dispose();
@@ -737,13 +759,7 @@ class _HeatmapState extends State<Heatmap> {
 
   Color levelColor(int ms, AppColors p) {
     if (ms <= 0) return p.well;
-    final level = ms < 1800000
-        ? .24
-        : ms < 3600000
-        ? .46
-        : ms < 7200000
-        ? .7
-        : 1.0;
+    final level = heatmapOpacity[heatmapLevel(ms)];
     return Color.alphaBlend(p.blue.withValues(alpha: level), p.card);
   }
 
@@ -823,7 +839,7 @@ class _HeatmapState extends State<Heatmap> {
           children: [
             Text('少', style: TextStyle(fontSize: 9, color: p.muted)),
             const SizedBox(width: 6),
-            for (final ms in [0, 60000, 1800000, 3600000, 7200000])
+            for (final ms in heatmapSamples)
               Padding(
                 padding: const EdgeInsets.only(right: 3),
                 child: Container(

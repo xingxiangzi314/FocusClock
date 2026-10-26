@@ -127,6 +127,27 @@ class _Home extends StatefulWidget {
 
 class _HomeState extends State<_Home> with SingleTickerProviderStateMixin {
   late int page = widget.initialPage;
+  int handledStatisticsRequest = -1;
+  void _readStatisticsRequest() {
+    final c = widget.controller;
+    if (handledStatisticsRequest != c.statisticsRequest) {
+      handledStatisticsRequest = c.statisticsRequest;
+      if (c.statisticsDate != null) page = 1;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _readStatisticsRequest();
+  }
+
+  @override
+  void didUpdateWidget(_Home oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _readStatisticsRequest();
+  }
+
   int direction = 1;
   late final AnimationController animation = AnimationController(
     vsync: this,
@@ -205,7 +226,11 @@ class _HomeState extends State<_Home> with SingleTickerProviderStateMixin {
                               ),
                               _RetainedPage(
                                 active: page == 1,
-                                builder: () => StatsPage(controller: c),
+                                builder: () => StatsPage(
+                                  controller: c,
+                                  requestedDate: c.statisticsDate,
+                                  requestId: c.statisticsRequest,
+                                ),
                               ),
                               _RetainedPage(
                                 active: page == 2,
