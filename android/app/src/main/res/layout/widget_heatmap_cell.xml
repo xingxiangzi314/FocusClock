@@ -1,5 +1,6 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_cell"
     android:layout_width="0dp" android:layout_height="match_parent" android:layout_weight="1">
-    <ImageView android:id="@+id/widget_cell_color" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitXY" android:importantForAccessibility="no" />
+    <FrameLayout android:id="@+id/widget_cell_surface" android:layout_width="match_parent" android:layout_height="match_parent" android:layout_margin="2dp">
     <TextView android:id="@+id/widget_cell_day" android:layout_width="match_parent" android:layout_height="match_parent" android:gravity="center" android:textSize="9sp" android:includeFontPadding="false" android:importantForAccessibility="no" />
+    </FrameLayout>
 </FrameLayout>

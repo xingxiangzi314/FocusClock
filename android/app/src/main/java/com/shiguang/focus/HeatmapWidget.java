@@ -7,10 +7,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.RectF;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,7 +14,6 @@ import android.view.View;
 import android.widget.RemoteViews;
 import org.json.JSONObject;
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -61,8 +56,16 @@ public final class HeatmapWidget extends AppWidgetProvider {
                 LocalDate today = HeatmapModel.today();
                 HeatmapModel.Month month = HeatmapModel.month(data.getJSONArray("sessions"), today);
                 boolean systemDark = (app.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
-                RemoteViews views = render(app, month, HeatmapModel.dark(data.optString("theme"), systemDark));
-                if (token == revision.get()) manager.updateAppWidget(ids, views);
+                boolean dark = HeatmapModel.dark(data.optString("theme"), systemDark);
+                for (int id : ids) {
+                    if (token != revision.get()) return;
+                    Bundle options = manager.getAppWidgetOptions(id);
+                    boolean portraitCompact = compactForHeight(month.weeks, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,140));
+                    boolean landscapeCompact = compactForHeight(month.weeks, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,110));
+                    RemoteViews portrait = render(app,month,dark,portraitCompact);
+                    RemoteViews views = portraitCompact == landscapeCompact ? portrait : new RemoteViews(render(app,month,dark,landscapeCompact),portrait);
+                    if (token == revision.get()) manager.updateAppWidget(id,views);
+                }
             } catch (Exception ex) {Log.w("HeatmapWidget", "Keeping last widget view after refresh failure", ex);}
             finally {result.finish();}
         });
@@ -80,36 +83,26 @@ public final class HeatmapWidget extends AppWidgetProvider {
         for (int shift : new int[]{0,8,16}) value |= ((((foreground >> shift) & 255) * alpha + ((background >> shift) & 255) * (255-alpha) + 127) / 255) << shift;
         return value;
     }
-    private static Bitmap tile(int color, boolean today, int blue) {
-        Bitmap bitmap = Bitmap.createBitmap(48,48,Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);paint.setColor(color);
-        canvas.drawRoundRect(new RectF(3,3,45,45),3,3,paint);
-        if (today) {paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);paint.setColor(blue);canvas.drawRoundRect(new RectF(3,3,45,45),3,3,paint);}
-        return bitmap;
-    }
-    static RemoteViews render(Context context, HeatmapModel.Month month, boolean dark) {
-        int ink = dark ? 0xfff3f4f8 : 0xff191c22, muted = dark ? 0xff9ba2af : 0xff7d808b, blue = dark ? 0xff409aff : 0xff087dff;
-        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_heatmap);
+    static boolean compactForHeight(int weeks, int height) {return height < 52 + 4 * (weeks - 1) + 11 * weeks;}
+    static RemoteViews render(Context context, HeatmapModel.Month month, boolean dark, boolean compact) {
+        int ink = dark ? 0xfff3f4f8 : 0xff191c22, muted = dark ? 0xff9ba2af : 0xff7d808b;
+        RemoteViews views = new RemoteViews(context.getPackageName(), compact ? R.layout.widget_heatmap_compact : R.layout.widget_heatmap_spaced);
         views.setInt(R.id.widget_root,"setBackgroundResource",dark ? R.drawable.widget_card_dark : R.drawable.widget_card_light);
         views.setTextColor(R.id.widget_title,ink);
         views.setTextViewText(R.id.widget_title,month.title());
         views.setOnClickPendingIntent(R.id.widget_root,openDay(context,month.today));
         views.removeAllViews(R.id.widget_weeks);
-        HashMap<String,Bitmap> tiles = new HashMap<>();
         for (int week = 0; week < month.weeks; week++) {
             RemoteViews weekRow = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_week);
             for (int row = 0; row < 7; row++) {
                 LocalDate date = month.date(week,row);
-                RemoteViews cell = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_cell);
+                RemoteViews cell = new RemoteViews(context.getPackageName(),compact ? R.layout.widget_heatmap_cell_compact : R.layout.widget_heatmap_cell);
                 if (!month.contains(date)) cell.setViewVisibility(R.id.widget_cell,View.INVISIBLE);
                 else {
                     boolean future = date.isAfter(month.today), today = date.equals(month.today);
                     long duration = month.duration(date);
                     int level = future ? 0 : HeatmapModel.level(duration);
-                    String key = level + ":" + today;
-                    if (!tiles.containsKey(key)) tiles.put(key,tile(color(level,dark),today,blue));
-                    cell.setImageViewBitmap(R.id.widget_cell_color,tiles.get(key));
+                    cell.setInt(R.id.widget_cell_surface,"setBackgroundResource",HeatmapTiles.background(level,dark,today,compact));
                     cell.setTextViewText(R.id.widget_cell_day,Integer.toString(date.getDayOfMonth()));
                     cell.setTextColor(R.id.widget_cell_day,future ? muted : level >= 3 ? 0xffffffff : ink);
                     cell.setContentDescription(R.id.widget_cell,String.format(Locale.CHINA,"%d月%d日，%s",date.getMonthValue(),date.getDayOfMonth(),future ? "尚未到来" : "专注 " + duration/3600000 + " 小时 " + duration/60000%60 + " 分钟"));

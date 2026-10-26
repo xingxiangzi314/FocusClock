@@ -3,5 +3,5 @@
     android:minResizeWidth="180dp" android:minResizeHeight="110dp"
     android:targetCellWidth="3" android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"
-    android:initialLayout="@layout/widget_heatmap" android:previewImage="@drawable/widget_heatmap_preview"
+    android:initialLayout="@layout/widget_heatmap_spaced" android:previewImage="@drawable/widget_heatmap_preview"
     android:updatePeriodMillis="1800000" />

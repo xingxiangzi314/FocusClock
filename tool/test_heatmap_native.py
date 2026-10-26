@@ -15,7 +15,7 @@ src, classes = root/'src', root/'classes'
 native = project/'android/app/src/main/java/com/shiguang/focus'
 package = src/'com/shiguang/focus'
 package.mkdir(parents=True,exist_ok=True)
-for name in ['HeatmapModel.java','HeatmapWidget.java']:
+for name in ['HeatmapModel.java','HeatmapWidget.java','HeatmapTiles.java']:
     (package/name).write_bytes((native/name).read_bytes())
 (package/'Repository.java').write_text('package com.shiguang.focus; public class Repository {public static Repository get(android.content.Context c){return null;}public String widgetSnapshot(){return "";}}',encoding='utf-8')
 (package/'FocusActivity.java').write_text('package com.shiguang.focus; public class FocusActivity {}',encoding='utf-8')
@@ -28,7 +28,7 @@ for path in (res/'layout').glob('widget*.xml'):
         if value.startswith('@+id/'):
             names.add(value.split('/')[1])
 r = ['package com.shiguang.focus; public final class R {']
-for kind, values in [('id',sorted(names)),('layout',[p.stem for p in (res/'layout').glob('widget*.xml')]),('drawable',['widget_card_light','widget_card_dark'])]:
+for kind, values in [('id',sorted(names)),('layout',[p.stem for p in (res/'layout').glob('widget*.xml')]),('drawable',[p.stem for p in (res/'drawable').glob('widget*.xml')])]:
     r.append('public static final class '+kind+' {')
     for i, name in enumerate(values):r.append(f'public static final int {name}={i+1};')
     r.append('}')
@@ -86,6 +86,13 @@ public class HeatmapTest {
    ok(colors.size()==6,"six distinct shades, dark="+dark);
    ok(HeatmapWidget.color(5,dark)==(dark?0xff409aff:0xff087dff),"top band equals app blue, dark="+dark);
   }
+  ok(!HeatmapWidget.compactForHeight(6,140),"six weeks at standard height keep approved spacing");
+  ok(HeatmapWidget.compactForHeight(6,110),"six weeks at minimum height use compact spacing");
+  ok(!HeatmapWidget.compactForHeight(4,110),"short February can keep full spacing");
+  ok(HeatmapWidget.compactForHeight(5,110),"five weeks at minimum height use compact spacing");
+  java.util.HashSet<Integer> backgroundIds=new java.util.HashSet<>();
+  for(boolean compact:new boolean[]{false,true})for(boolean dark:new boolean[]{false,true})for(boolean selected:new boolean[]{false,true})for(int level=0;level<=5;level++)backgroundIds.add(HeatmapTiles.background(level,dark,selected,compact));
+  ok(backgroundIds.size()==48,"all theme and density background states have explicit resources");
   // A design fixture for the preview, using actual native bucket and palette code.
   JSONObject preview=new JSONObject();JSONArray colors=new JSONArray();
   for(boolean dark:new boolean[]{false,true}){JSONArray row=new JSONArray();for(int i=0;i<=5;i++)row.put(String.format("#%06x",HeatmapWidget.color(i,dark)&0xffffff));colors.put(row);}
@@ -112,7 +119,7 @@ assert int(info.get(a+'updatePeriodMillis'))>=1800000
 assert 'PendingIntent.getActivity' in (native/'HeatmapWidget.java').read_text(encoding='utf-8')
 print('Private widget provider, 3x2 metadata, periodic update and direct activity launch verified.')
 
-layout=ET.parse(res/'layout/widget_heatmap.xml').getroot()
+layout=ET.parse(res/'layout/widget_heatmap_spaced.xml').getroot()
 container=next(item for item in layout if item.get(a+'id')=='@+id/widget_weeks')
 assert container.get(a+'orientation')=='vertical'
 week=ET.parse(res/'layout/widget_heatmap_week.xml').getroot()
@@ -123,3 +130,16 @@ assert cell.get(a+'layout_width')=='0dp' and cell.get(a+'layout_weight')=='1'
 ids={item.get(a+'id') for item in layout.iter()}
 assert not ids.intersection({'@+id/widget_month','@+id/widget_summary','@+id/widget_legend','@+id/widget_weekday0'})
 print('Compact seven-column calendar rows, removed labels and weighted space verified.')
+
+import json
+palette=json.loads((root/'preview.json').read_text(encoding='utf-8'))['colors']
+for compact in [False,True]:
+    for dark in [False,True]:
+        for today in [False,True]:
+            for level in range(6):
+                name=f'widget_day_{"compact" if compact else "normal"}_{"dark" if dark else "light"}_{"today" if today else "plain"}_{level}.xml'
+                shape=ET.parse(res/'drawable'/name).getroot()
+                assert shape.find('solid').get(a+'color')==palette[int(dark)][level]
+                assert shape.find('corners').get(a+'radius')==('3dp' if compact else '4dp')
+                assert (shape.find('stroke') is not None)==today
+print('All 48 native backgrounds match the live palette and fixed corner radii.')

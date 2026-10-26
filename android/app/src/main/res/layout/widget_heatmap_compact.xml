@@ -1,9 +1,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
-    android:padding="8dp" android:background="@drawable/widget_card_light">
-    <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="18dp"
-        android:layout_marginStart="3dp" android:layout_marginBottom="2dp" android:gravity="center_vertical"
+    android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="10dp" android:paddingBottom="10dp" android:background="@drawable/widget_card_light">
+    <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="16dp"
+        android:layout_marginBottom="4dp" android:gravity="center_vertical"
         android:text="月热力" android:textSize="12sp" android:textStyle="bold" android:textColor="#191c22" />
     <LinearLayout android:id="@+id/widget_weeks" android:layout_width="match_parent" android:layout_height="0dp"
-        android:layout_weight="1" android:orientation="vertical" />
+        android:layout_weight="1" android:layout_margin="-1dp" android:orientation="vertical" />
 </LinearLayout>
