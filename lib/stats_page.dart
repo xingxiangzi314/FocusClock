@@ -24,7 +24,7 @@ class StatsPage extends StatefulWidget {
 class _StatsPageState extends State<StatsPage> {
   FocusPeriod period = FocusPeriod.day;
   late DateTime anchor =
-      DateTime.tryParse(widget.requestedDate ?? '') ?? DateTime.now();
+      beijingParseDate(widget.requestedDate ?? '') ?? beijingNow();
   int recordLimit = 10;
   final scroll = ScrollController();
   FocusController get c => widget.controller;
@@ -33,7 +33,7 @@ class _StatsPageState extends State<StatsPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.requestId != widget.requestId &&
         widget.requestedDate != null) {
-      anchor = DateTime.parse(widget.requestedDate!);
+      anchor = beijingParseDate(widget.requestedDate!)!;
       period = FocusPeriod.day;
       recordLimit = 10;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -50,10 +50,10 @@ class _StatsPageState extends State<StatsPage> {
 
   void changePeriod(int delta) {
     final date = PeriodRange.of(period, anchor).shift(period, delta);
-    if (date.isAfter(DateTime.now())) return;
+    if (date.isAfter(beijingNow())) return;
     c.feedback();
     setState(() {
-      anchor = date;
+      anchor = dayStart(date);
       recordLimit = 10;
     });
   }
@@ -61,7 +61,7 @@ class _StatsPageState extends State<StatsPage> {
   @override
   Widget build(BuildContext context) {
     final p = AppColors.of(context), stats = c.statistics;
-    final range = PeriodRange.of(period, anchor), now = DateTime.now();
+    final range = PeriodRange.of(period, anchor), now = beijingNow();
     final total = stats.inRange(range), records = stats.records(range);
     return PageLayout(
       storageKey: const PageStorageKey('stats-scroll'),
@@ -285,16 +285,17 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Future<void> _pickDate(BuildContext context) async {
-    final now = DateTime.now();
+    final now = beijingNow();
     final date = await showDatePicker(
       context: context,
+      currentDate: dayStart(now),
       initialDate: anchor.isAfter(now) ? now : anchor,
-      firstDate: DateTime(2000),
+      firstDate: beijingCalendar(2000),
       lastDate: now,
     );
     if (date != null && mounted)
       setState(() {
-        anchor = date;
+        anchor = dayStart(date);
         recordLimit = 10;
       });
   }
@@ -437,12 +438,11 @@ class _StatsPageState extends State<StatsPage> {
   }
 
   Widget _record(BuildContext context, FocusSession record, PeriodRange range) {
-    final p = AppColors.of(context),
-        d = DateTime.fromMillisecondsSinceEpoch(record.startAt);
+    final p = AppColors.of(context), d = beijingTime(record.startAt);
     final ms = overlap(
       record,
-      range.start.millisecondsSinceEpoch,
-      range.end.millisecondsSinceEpoch,
+      beijingEpoch(range.start),
+      beijingEpoch(range.end),
     );
     return InkWell(
       enableFeedback: false,
@@ -513,7 +513,7 @@ class _StatsPageState extends State<StatsPage> {
               ),
               const SizedBox(height: 15),
               Text(
-                '${dateText(DateTime.fromMillisecondsSinceEpoch(record.startAt), year: true)} ${timeText(record.startAt)}\n至 ${dateText(DateTime.fromMillisecondsSinceEpoch(record.endAt), year: true)} ${timeText(record.endAt)}\n\n完整有效专注：${durationText(record.durationMs)}（${record.durationMs ~/ 1000} 秒）\n计时方式：${record.mode == 'up' ? '正计时' : '倒计时'}',
+                '${dateText(beijingTime(record.startAt), year: true)} ${timeText(record.startAt)}\n至 ${dateText(beijingTime(record.endAt), year: true)} ${timeText(record.endAt)}\n\n完整有效专注：${durationText(record.durationMs)}（${record.durationMs ~/ 1000} 秒）\n计时方式：${record.mode == 'up' ? '正计时' : '倒计时'}',
                 style: const TextStyle(fontSize: 13, height: 1.9),
               ),
               const SizedBox(height: 25),
@@ -742,8 +742,8 @@ class _HeatmapState extends State<Heatmap> {
 
   void revealSelected() {
     if (!mounted || !scroll.hasClients) return;
-    final first = DateTime(year);
-    final start = DateTime(year, 1, 2 - first.weekday);
+    final first = beijingCalendar(year);
+    final start = beijingCalendar(year, 1, 2 - first.weekday);
     final week = selected.difference(start).inDays ~/ 7;
     final offset = (week * 15 - scroll.position.viewportDimension / 2)
         .clamp(0.0, scroll.position.maxScrollExtent)
@@ -766,10 +766,10 @@ class _HeatmapState extends State<Heatmap> {
   @override
   Widget build(BuildContext context) {
     final p = AppColors.of(context),
-        first = DateTime(year),
-        last = DateTime(year + 1),
-        now = dayStart(DateTime.now());
-    final start = DateTime(year, 1, 2 - first.weekday);
+        first = beijingCalendar(year),
+        last = beijingCalendar(year + 1),
+        now = dayStart(beijingNow());
+    final start = beijingCalendar(year, 1, 2 - first.weekday);
     final count = (last.difference(start).inDays / 7).ceil();
     return Column(
       children: [
@@ -817,7 +817,7 @@ class _HeatmapState extends State<Heatmap> {
                           for (var day = 0; day < 7; day++)
                             _cell(
                               context,
-                              DateTime(
+                              beijingCalendar(
                                 start.year,
                                 start.month,
                                 start.day + week * 7 + day,
@@ -861,7 +861,7 @@ class _HeatmapState extends State<Heatmap> {
 
   String _monthLabel(DateTime start, int week) {
     for (var day = 0; day < 7; day++) {
-      final date = DateTime(
+      final date = beijingCalendar(
         start.year,
         start.month,
         start.day + week * 7 + day,

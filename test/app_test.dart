@@ -1,3 +1,4 @@
+import 'package:shiguang_focus/models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shiguang_focus/controller.dart';
@@ -94,12 +95,10 @@ void main() {
       addTearDown(tester.view.resetPadding);
       final gateway = TestGateway();
       if (populated) {
-        final now = DateTime.now();
-        final start = DateTime(
-          now.year,
-          now.month,
-          now.day,
-        ).millisecondsSinceEpoch;
+        final now = beijingNow();
+        final start = beijingEpoch(
+          beijingCalendar(now.year, now.month, now.day),
+        );
         (gateway.data['sessions'] as List).add({
           'id': 'layout-record',
           'taskId': 'math',
@@ -161,7 +160,7 @@ void main() {
     await tester.tap(find.text('统计数据').last);
     await tester.pumpAndSettle();
     final date = find.byKey(const ValueKey('statistics-date'));
-    final now = DateTime.now();
+    final now = beijingNow();
     expect(
       find.descendant(
         of: date,
@@ -337,13 +336,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
   testWidgets('有记录时累计专注、饼图和热力图依次显示', (tester) async {
-    final g = TestGateway(), now = DateTime.now();
-    final start = DateTime(
-      now.year,
-      now.month,
-      now.day,
-      10,
-    ).millisecondsSinceEpoch;
+    final g = TestGateway(), now = beijingNow();
+    final start = beijingEpoch(
+      beijingCalendar(now.year, now.month, now.day, 10),
+    );
     (g.data['sessions'] as List).add({
       'id': 'one',
       'taskId': 'math',

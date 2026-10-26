@@ -78,7 +78,7 @@ public class MainActivity extends FlutterActivity {
         });
     }
     private void readWidgetIntent(Intent intent) {
-        java.time.LocalDate date = HeatmapModel.launchDate(intent == null ? null : intent.getDataString(), java.time.LocalDate.now());
+        java.time.LocalDate date = HeatmapModel.launchDate(intent == null ? null : intent.getDataString(), HeatmapModel.today());
         pendingWidgetDate = date == null ? null : date.toString();
     }
     @Override protected void onNewIntent(Intent intent) {
@@ -119,7 +119,7 @@ public class MainActivity extends FlutterActivity {
             pendingExport = "csv".equals(format) ? repo.csv() : repo.backup();
             Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
                 .setType("csv".equals(format) ? "text/csv" : "application/json")
-                .putExtra(Intent.EXTRA_TITLE,"拾光-" + new java.text.SimpleDateFormat("yyyy-MM-dd",java.util.Locale.CHINA).format(new java.util.Date()) + ("csv".equals(format) ? ".csv" : ".json"));
+                .putExtra(Intent.EXTRA_TITLE,"拾光-" + HeatmapModel.today().toString() + ("csv".equals(format) ? ".csv" : ".json"));
             startActivityForResult(intent,EXPORT);
         } catch (Exception ex) {pendingExport = null;message("未能打开文件保存窗口");}
     }

@@ -1,3 +1,4 @@
+import 'package:shiguang_focus/models.dart';
 // Explicit preview tool, not bundled in the application. All records below are demonstration data.
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -45,18 +46,15 @@ void main() {
     tester.view.devicePixelRatio = 1;
     tester.view.padding = const FakeViewPadding(top: 32, bottom: 24);
     final gateway = TestGateway();
-    final now = DateTime.now();
+    final now = beijingNow();
     final sessions = gateway.data['sessions'] as List;
     var sequence = 0;
     for (var day = 0; day < 38; day++) {
       if (day % 6 == 4) continue;
       for (var task = 0; task < 2; task++) {
-        final start = DateTime(
-          now.year,
-          now.month,
-          now.day - day,
-          8 + task * 2,
-        ).millisecondsSinceEpoch;
+        final start = beijingEpoch(
+          beijingCalendar(now.year, now.month, now.day - day, 8 + task * 2),
+        );
         final duration = (25 + (day * 7 + task * 13) % 50) * 60000;
         sessions.add({
           'id': 'demo-${sequence++}',

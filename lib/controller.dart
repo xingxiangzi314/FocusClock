@@ -44,12 +44,12 @@ class FocusController extends ChangeNotifier with WidgetsBindingObserver {
   int statisticsRequest = 0;
 
   void openStatisticsDate(String value) {
-    final date = DateTime.tryParse(value);
+    final date = beijingParseDate(value);
     if (_disposed ||
         date == null ||
         dayKey(date) != value ||
         date.year < 2000 ||
-        date.isAfter(dayStart(DateTime.now())))
+        date.isAfter(dayStart(beijingNow())))
       return;
     statisticsDate = value;
     statisticsRequest++;
@@ -76,7 +76,7 @@ class FocusController extends ChangeNotifier with WidgetsBindingObserver {
   List<FocusSession>? _statisticsSource;
   String? _statisticsDay;
   FocusStatistics get statistics {
-    final today = dayKey(DateTime.now());
+    final today = dayKey(beijingNow());
     if (!identical(_statisticsSource, state.sessions) ||
         _statisticsDay != today) {
       _statistics = FocusStatistics(state.sessions);

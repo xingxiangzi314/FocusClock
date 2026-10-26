@@ -72,17 +72,14 @@ class _PreviewGateway implements FocusGateway {
 }
 
 Json _previewData() {
-  final now = DateTime.now();
+  final now = beijingNow();
   final sessions = <Json>[];
   for (var day = 0; day < 35; day++) {
     if (day % 5 == 4) continue;
     for (var task = 0; task < 2; task++) {
-      final start = DateTime(
-        now.year,
-        now.month,
-        now.day - day,
-        9 + task * 2,
-      ).millisecondsSinceEpoch;
+      final start = beijingEpoch(
+        beijingCalendar(now.year, now.month, now.day - day, 9 + task * 2),
+      );
       final duration = (task == 0 ? 25 : 38) * 60000;
       sessions.add({
         'id': 'preview-$day-$task',

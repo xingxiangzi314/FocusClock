@@ -1,26 +1,9 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_root"
     android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
-    android:padding="14dp" android:background="@drawable/widget_card_light">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="22dp" android:gravity="center_vertical">
-        <TextView android:id="@+id/widget_title" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="本月热力" android:textSize="14sp" android:textStyle="bold" android:textColor="#191c22" />
-        <TextView android:id="@+id/widget_month" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="11sp" android:textColor="#7d808b" android:text="拾光" />
-    </LinearLayout>
-    <TextView android:id="@+id/widget_summary" android:layout_width="match_parent" android:layout_height="18dp" android:textSize="10sp" android:textColor="#7d808b" android:text="把时间，留给重要的事" android:singleLine="true" android:ellipsize="end" />
-    <LinearLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:layout_marginTop="3dp" android:layout_marginBottom="5dp" android:gravity="center">
-        <LinearLayout android:layout_width="18dp" android:layout_height="match_parent" android:orientation="vertical">
-            <TextView android:id="@+id/widget_weekday0" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:text="一" android:textSize="9sp" android:textColor="#7d808b" android:includeFontPadding="false" />
-            <TextView android:id="@+id/widget_weekday1" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:textSize="9sp" android:textColor="#7d808b" />
-            <TextView android:id="@+id/widget_weekday2" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:text="三" android:textSize="9sp" android:textColor="#7d808b" android:includeFontPadding="false" />
-            <TextView android:id="@+id/widget_weekday3" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:textSize="9sp" android:textColor="#7d808b" />
-            <TextView android:id="@+id/widget_weekday4" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:text="五" android:textSize="9sp" android:textColor="#7d808b" android:includeFontPadding="false" />
-            <TextView android:id="@+id/widget_weekday5" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:textSize="9sp" android:textColor="#7d808b" />
-            <TextView android:id="@+id/widget_weekday6" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:gravity="center" android:text="日" android:textSize="9sp" android:textColor="#7d808b" android:includeFontPadding="false" />
-        </LinearLayout>
-        <LinearLayout android:id="@+id/widget_weeks" android:layout_width="wrap_content" android:layout_height="match_parent" android:orientation="horizontal" />
-    </LinearLayout>
-    <LinearLayout android:layout_width="match_parent" android:layout_height="12dp" android:gravity="end|center_vertical">
-        <TextView android:id="@+id/widget_less" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginEnd="5dp" android:text="少" android:textSize="8sp" android:textColor="#7d808b" />
-        <LinearLayout android:id="@+id/widget_legend" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:contentDescription="未专注、不足1小时、1至不足3小时、3至不足6小时、6至不足8小时、8小时及以上" />
-        <TextView android:id="@+id/widget_more" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:text="多" android:textSize="8sp" android:textColor="#7d808b" />
-    </LinearLayout>
+    android:padding="12dp" android:background="@drawable/widget_card_light">
+    <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="22dp"
+        android:layout_marginStart="3dp" android:layout_marginBottom="4dp" android:gravity="center_vertical"
+        android:text="月热力" android:textSize="14sp" android:textStyle="bold" android:textColor="#191c22" />
+    <LinearLayout android:id="@+id/widget_weeks" android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:orientation="vertical" />
 </LinearLayout>

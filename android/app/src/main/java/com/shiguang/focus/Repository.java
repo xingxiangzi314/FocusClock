@@ -183,6 +183,7 @@ public final class Repository {
     }
     public synchronized String csv() throws Exception {
         java.text.SimpleDateFormat date = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.CHINA);
+        date.setTimeZone(java.util.TimeZone.getTimeZone("GMT+08:00"));
         StringBuilder out = new StringBuilder("\uFEFF任务,模式,开始时间,结束时间,专注秒数,专注分钟数\r\n");
         for (int i = 0; i < sessions().length(); i++) {JSONObject r = sessions().getJSONObject(i);String title = r.getString("title");if (title.matches("^[=+\\-@\\t\\r].*")) title = "'" + title;String[] fields = {title,"down".equals(r.getString("mode")) ? "倒计时" : "正计时",date.format(new java.util.Date(r.getLong("startAt"))),date.format(new java.util.Date(r.getLong("endAt"))),String.valueOf(r.getLong("durationMs") / 1000),String.format(java.util.Locale.US,"%.2f",r.getLong("durationMs") / 60000.0)};for (int j = 0; j < fields.length; j++) {if (j > 0) out.append(',');out.append('"').append(fields[j].replace("\"", "\"\"")).append('"');}out.append("\r\n");}
         return out.toString();

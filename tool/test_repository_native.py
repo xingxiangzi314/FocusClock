@@ -113,6 +113,15 @@ public class RepositoryTest {
   command(r,"start","{}");TestClock.advance(20000);widgetBefore=HeatmapWidget.updates;command(r,"finish","{}");ok(HeatmapWidget.updates==widgetBefore+1,"manual finish refreshes widget");
   JSONObject widgetBackup=new JSONObject(r.backup());widgetBefore=HeatmapWidget.updates;command(r,"restore",new JSONObject().put("data",widgetBackup).toString());ok(HeatmapWidget.updates==widgetBefore+1,"restore refreshes widget");
   widgetBefore=HeatmapWidget.updates;command(r,"reset","{}");ok(HeatmapWidget.updates==widgetBefore+1,"reset refreshes widget");
+  command(r,"start","{}");TestClock.advance(20000);command(r,"finish","{}");
+  java.util.TimeZone previousZone=java.util.TimeZone.getDefault();
+  try {
+    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"));String utcCsv=r.csv();
+    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"));String foreignCsv=r.csv();
+    ok(utcCsv.equals(foreignCsv),"CSV timestamps ignore device timezone");
+    java.text.SimpleDateFormat beijingFormat=new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss",java.util.Locale.CHINA);beijingFormat.setTimeZone(java.util.TimeZone.getTimeZone("GMT+08:00"));
+    ok(utcCsv.contains(beijingFormat.format(new java.util.Date(TestClock.now()-20000))),"CSV timestamps use fixed Beijing time");
+  } finally {java.util.TimeZone.setDefault(previousZone);}
   System.out.println("ALL "+checks+" NATIVE REPOSITORY CHECKS PASSED");
  }
 }'''

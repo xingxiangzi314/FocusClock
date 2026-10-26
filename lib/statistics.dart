@@ -23,7 +23,7 @@ extension FocusPeriodLabel on FocusPeriod {
   String get label => ['日', '周', '月', '年'][index];
 }
 
-DateTime dayStart(DateTime d) => DateTime(d.year, d.month, d.day);
+DateTime dayStart(DateTime d) => beijingCalendar(d.year, d.month, d.day);
 String dayKey(DateTime d) =>
     '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
@@ -34,28 +34,35 @@ class PeriodRange {
     final d = dayStart(anchor);
     switch (period) {
       case FocusPeriod.day:
-        return PeriodRange(d, DateTime(d.year, d.month, d.day + 1));
+        return PeriodRange(d, beijingCalendar(d.year, d.month, d.day + 1));
       case FocusPeriod.week:
-        final s = DateTime(d.year, d.month, d.day - d.weekday + 1);
-        return PeriodRange(s, DateTime(s.year, s.month, s.day + 7));
+        final s = beijingCalendar(d.year, d.month, d.day - d.weekday + 1);
+        return PeriodRange(s, beijingCalendar(s.year, s.month, s.day + 7));
       case FocusPeriod.month:
         return PeriodRange(
-          DateTime(d.year, d.month),
-          DateTime(d.year, d.month + 1),
+          beijingCalendar(d.year, d.month),
+          beijingCalendar(d.year, d.month + 1),
         );
       case FocusPeriod.year:
-        return PeriodRange(DateTime(d.year), DateTime(d.year + 1));
+        return PeriodRange(
+          beijingCalendar(d.year),
+          beijingCalendar(d.year + 1),
+        );
     }
   }
   DateTime shift(FocusPeriod period, int delta) => switch (period) {
-    FocusPeriod.day => DateTime(start.year, start.month, start.day + delta),
-    FocusPeriod.week => DateTime(
+    FocusPeriod.day => beijingCalendar(
+      start.year,
+      start.month,
+      start.day + delta,
+    ),
+    FocusPeriod.week => beijingCalendar(
       start.year,
       start.month,
       start.day + delta * 7,
     ),
-    FocusPeriod.month => DateTime(start.year, start.month + delta),
-    FocusPeriod.year => DateTime(start.year + delta),
+    FocusPeriod.month => beijingCalendar(start.year, start.month + delta),
+    FocusPeriod.year => beijingCalendar(start.year + delta),
   };
   String title(FocusPeriod period) => switch (period) {
     FocusPeriod.day => dateText(start, year: true),
@@ -87,14 +94,14 @@ class TrendPoint {
 class FocusStatistics {
   final List<FocusSession> sessions;
   final DateTime now;
-  FocusStatistics(this.sessions, {DateTime? now}) : now = now ?? DateTime.now();
+  FocusStatistics(this.sessions, {DateTime? now}) : now = now ?? beijingNow();
   int get total => sessions.fold(0, (sum, r) => sum + r.durationMs);
   int get dailyAverage {
     if (sessions.isEmpty) return 0;
     final first = sessions.map((r) => r.startAt).reduce(math.min);
-    final start = dayStart(DateTime.fromMillisecondsSinceEpoch(first));
+    final start = dayStart(beijingTime(first));
     final end = dayStart(now);
-    // Compare calendar dates in UTC so daylight-saving changes do not alter day count.
+    // Count fixed Beijing calendar days, including days without focus.
     final days =
         DateTime.utc(
           end.year,
@@ -112,10 +119,10 @@ class FocusStatistics {
       for (final p in r.segments) {
         var start = p.start;
         while (start < p.end) {
-          final d = DateTime.fromMillisecondsSinceEpoch(start);
+          final d = beijingTime(start);
           final end = math.min(
             p.end,
-            DateTime(d.year, d.month, d.day + 1).millisecondsSinceEpoch,
+            beijingEpoch(beijingCalendar(d.year, d.month, d.day + 1)),
           );
           final key = dayKey(d);
           result[key] = (result[key] ?? 0) + end - start;
@@ -129,10 +136,11 @@ class FocusStatistics {
   int get today => days[dayKey(now)] ?? 0;
   int get streak {
     var d = dayStart(now), count = 0;
-    if ((days[dayKey(d)] ?? 0) == 0) d = DateTime(d.year, d.month, d.day - 1);
+    if ((days[dayKey(d)] ?? 0) == 0)
+      d = beijingCalendar(d.year, d.month, d.day - 1);
     while ((days[dayKey(d)] ?? 0) > 0) {
       count++;
-      d = DateTime(d.year, d.month, d.day - 1);
+      d = beijingCalendar(d.year, d.month, d.day - 1);
     }
     return count;
   }
@@ -140,22 +148,13 @@ class FocusStatistics {
   int inRange(PeriodRange range) => sessions.fold(
     0,
     (sum, r) =>
-        sum +
-        overlap(
-          r,
-          range.start.millisecondsSinceEpoch,
-          range.end.millisecondsSinceEpoch,
-        ),
+        sum + overlap(r, beijingEpoch(range.start), beijingEpoch(range.end)),
   );
   List<FocusSession> records(PeriodRange range) =>
       sessions
           .where(
             (r) =>
-                overlap(
-                  r,
-                  range.start.millisecondsSinceEpoch,
-                  range.end.millisecondsSinceEpoch,
-                ) >
+                overlap(r, beijingEpoch(range.start), beijingEpoch(range.end)) >
                 0,
           )
           .toList()
@@ -163,11 +162,7 @@ class FocusStatistics {
   List<Distribution> distribution(PeriodRange range) {
     final totals = <String, Distribution>{};
     for (final r in sessions) {
-      final ms = overlap(
-        r,
-        range.start.millisecondsSinceEpoch,
-        range.end.millisecondsSinceEpoch,
-      );
+      final ms = overlap(r, beijingEpoch(range.start), beijingEpoch(range.end));
       if (ms == 0) continue;
       totals[r.taskId] = Distribution(
         r.taskId,
@@ -190,8 +185,8 @@ class FocusStatistics {
             '$hour',
             inRange(
               PeriodRange(
-                DateTime(d.year, d.month, d.day, hour),
-                DateTime(d.year, d.month, d.day, hour + 1),
+                beijingCalendar(d.year, d.month, d.day, hour),
+                beijingCalendar(d.year, d.month, d.day, hour + 1),
               ),
             ),
           ),
@@ -204,8 +199,8 @@ class FocusStatistics {
             '$month',
             inRange(
               PeriodRange(
-                DateTime(range.start.year, month),
-                DateTime(range.start.year, month + 1),
+                beijingCalendar(range.start.year, month),
+                beijingCalendar(range.start.year, month + 1),
               ),
             ),
           ),
@@ -214,7 +209,7 @@ class FocusStatistics {
     } else {
       var d = range.start;
       while (d.isBefore(range.end)) {
-        final n = DateTime(d.year, d.month, d.day + 1);
+        final n = beijingCalendar(d.year, d.month, d.day + 1);
         points.add(
           TrendPoint(
             period == FocusPeriod.week

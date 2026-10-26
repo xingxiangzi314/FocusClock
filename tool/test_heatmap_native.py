@@ -49,24 +49,33 @@ public class HeatmapTest {
   int[] expected={0,0,1,1,2,2,3,3,4,4,5,5};
   for(int i=0;i<boundary.length;i++)ok(HeatmapModel.level(boundary[i])==expected[i],"threshold "+boundary[i]);
   ZoneId zone=ZoneId.of("Asia/Shanghai");LocalDate today=LocalDate.of(2026,10,26);
-  HeatmapModel.Month month=HeatmapModel.month(records(at("2026-10-25T23:00",zone),at("2026-10-26T02:00",zone)),today,zone);
+  HeatmapModel.Month month=HeatmapModel.month(records(at("2026-10-25T23:00",zone),at("2026-10-26T02:00",zone)),today);
   ok(month.days[24]==3600000&&month.days[25]==7200000&&month.total==10800000,"cross-midnight split");
   ok(month.focusedDays==2,"focused days counts calendar days");
-  month=HeatmapModel.month(records(at("2026-09-30T23:00",zone),at("2026-10-01T02:00",zone),at("2026-10-31T23:00",zone),at("2026-11-01T02:00",zone)),today,zone);
+  month=HeatmapModel.month(records(at("2026-09-30T23:00",zone),at("2026-10-01T02:00",zone),at("2026-10-31T23:00",zone),at("2026-11-01T02:00",zone)),today);
   ok(month.days[0]==7200000&&month.days[30]==3600000&&month.total==10800000,"month clipping");
-  month=HeatmapModel.month(records(at("2026-10-26T00:00",zone),at("2026-10-26T01:00",zone),at("2026-10-26T05:00",zone),at("2026-10-26T06:00",zone)),today,zone);
+  month=HeatmapModel.month(records(at("2026-10-26T00:00",zone),at("2026-10-26T01:00",zone),at("2026-10-26T05:00",zone),at("2026-10-26T06:00",zone)),today);
   ok(month.total==7200000,"paused gaps excluded");
-  month=HeatmapModel.month(new JSONArray(),LocalDate.of(2021,2,28),zone);
+  month=HeatmapModel.month(new JSONArray(),LocalDate.of(2021,2,28));
   ok(month.weeks==4&&month.days.length==28,"28 day month can span four weeks");
-  month=HeatmapModel.month(new JSONArray(),LocalDate.of(2024,2,29),zone);
+  month=HeatmapModel.month(new JSONArray(),LocalDate.of(2024,2,29));
   ok(month.days.length==29&&month.weeks==5,"leap February");
-  month=HeatmapModel.month(new JSONArray(),LocalDate.of(2026,3,31),zone);
-  ok(month.weeks==6&&month.date(0,0).equals(LocalDate.of(2026,2,23))&&month.date(5,6).equals(LocalDate.of(2026,4,5)),"six week month and Monday columns");
-  ZoneId ny=ZoneId.of("America/New_York");
-  month=HeatmapModel.month(records(at("2026-03-08T00:00",ny),at("2026-03-09T00:00",ny)),LocalDate.of(2026,3,10),ny);
-  ok(month.days[7]==23*3600000L,"DST spring actual elapsed time");
-  month=HeatmapModel.month(records(at("2026-11-01T00:00",ny),at("2026-11-02T00:00",ny)),LocalDate.of(2026,11,3),ny);
-  ok(month.days[0]==25*3600000L,"DST fall actual elapsed time");
+  month=HeatmapModel.month(new JSONArray(),LocalDate.of(2026,3,31));
+  ok(month.weeks==6&&month.date(0,0).equals(LocalDate.of(2026,2,23))&&month.date(5,6).equals(LocalDate.of(2026,4,5)),"six week month and Monday-first dates");
+  java.util.TimeZone originalZone=java.util.TimeZone.getDefault();
+  try {
+    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("America/New_York"));
+    long begin=Instant.parse("2026-03-07T16:00:00Z").toEpochMilli();
+    month=HeatmapModel.month(records(begin,begin+86400000),LocalDate.of(2026,3,9));
+    ok(month.days[7]==86400000&&month.total==86400000,"Beijing days remain 24 hours with foreign system timezone");
+    java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("UTC"));
+    HeatmapModel.Month same=HeatmapModel.month(records(begin,begin+86400000),LocalDate.of(2026,3,9));
+    ok(java.util.Arrays.equals(month.days,same.days),"system timezone cannot change widget totals");
+  } finally {java.util.TimeZone.setDefault(originalZone);}
+  ok(HeatmapModel.todayAt(Instant.parse("2026-10-31T15:59:59Z")).equals(LocalDate.of(2026,10,31)),"before Beijing month boundary");
+  ok(HeatmapModel.todayAt(Instant.parse("2026-10-31T16:00:00Z")).equals(LocalDate.of(2026,11,1)),"Beijing midnight changes month");
+  ok(new HeatmapModel.Month(LocalDate.of(2026,10,26)).title().equals("10月热力"),"specific month title");
+  ok(new HeatmapModel.Month(LocalDate.of(2027,1,1)).title().equals("1月热力"),"title updates across year boundary");
   for(String bad:new String[]{"shiguang://heatmap/2026-02-30","shiguang://heatmap/2026-10-27","shiguang://heatmap/2026-10-26?x=1","evil://heatmap/2026-10-26",null})
    ok(HeatmapModel.launchDate(bad,today)==null,"reject invalid widget URI "+bad);
   ok(HeatmapModel.launchDate("shiguang://heatmap/2024-02-29",today).equals(LocalDate.of(2024,2,29)),"valid date deep link");
@@ -100,3 +109,15 @@ assert info.get(a+'targetCellWidth') == '4' and info.get(a+'targetCellHeight') =
 assert int(info.get(a+'updatePeriodMillis'))>=1800000
 assert 'PendingIntent.getActivity' in (native/'HeatmapWidget.java').read_text(encoding='utf-8')
 print('Private widget provider, 4x3 metadata, periodic update and direct activity launch verified.')
+
+layout=ET.parse(res/'layout/widget_heatmap.xml').getroot()
+container=next(item for item in layout if item.get(a+'id')=='@+id/widget_weeks')
+assert container.get(a+'orientation')=='vertical'
+week=ET.parse(res/'layout/widget_heatmap_week.xml').getroot()
+assert week.get(a+'orientation')=='horizontal' and week.get(a+'layout_width')=='match_parent'
+assert week.get(a+'layout_height')=='0dp' and week.get(a+'layout_weight')=='1'
+cell=ET.parse(res/'layout/widget_heatmap_cell.xml').getroot()
+assert cell.get(a+'layout_width')=='0dp' and cell.get(a+'layout_weight')=='1'
+ids={item.get(a+'id') for item in layout.iter()}
+assert not ids.intersection({'@+id/widget_month','@+id/widget_summary','@+id/widget_legend','@+id/widget_weekday0'})
+print('Compact seven-column calendar rows, removed labels and weighted space verified.')

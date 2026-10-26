@@ -4,10 +4,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 
 /** Shared widget data rules, independent of Android views and timer lifecycles. */
 final class HeatmapModel {
+    static final ZoneOffset BEIJING = ZoneOffset.ofHours(8);
+    static LocalDate today() {return todayAt(Instant.now());}
+    static LocalDate todayAt(Instant instant) {return instant.atOffset(BEIJING).toLocalDate();}
     static int level(long ms) {
         return ms <= 0 ? 0 : ms < 3600000 ? 1 : ms < 10800000 ? 2 : ms < 21600000 ? 3 : ms < 28800000 ? 4 : 5;
     }
@@ -39,11 +42,12 @@ final class HeatmapModel {
         LocalDate date(int week, int weekday) {return gridStart.plusDays(week * 7L + weekday);}
         boolean contains(LocalDate date) {return date.getYear() == first.getYear() && date.getMonth() == first.getMonth();}
         long duration(LocalDate date) {return contains(date) ? days[date.getDayOfMonth() - 1] : 0;}
+        String title() {return first.getMonthValue() + "月热力";}
     }
-    static Month month(JSONArray records, LocalDate today, ZoneId zone) {
+    static Month month(JSONArray records, LocalDate today) {
         Month month = new Month(today);
-        long lower = month.first.atStartOfDay(zone).toInstant().toEpochMilli();
-        long upper = month.first.plusMonths(1).atStartOfDay(zone).toInstant().toEpochMilli();
+        long lower = month.first.atStartOfDay().atOffset(BEIJING).toInstant().toEpochMilli();
+        long upper = month.first.plusMonths(1).atStartOfDay().atOffset(BEIJING).toInstant().toEpochMilli();
         for (int i = 0; i < records.length(); i++) {
             JSONObject record = records.optJSONObject(i);
             if (record == null) continue;
@@ -55,8 +59,8 @@ final class HeatmapModel {
                 long start = Math.max(lower, segment.optLong("start"));
                 long end = Math.min(upper, segment.optLong("end"));
                 while (start < end) {
-                    LocalDate date = Instant.ofEpochMilli(start).atZone(zone).toLocalDate();
-                    long next = Math.min(end, date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli());
+                    LocalDate date = todayAt(Instant.ofEpochMilli(start));
+                    long next = Math.min(end, date.plusDays(1).atStartOfDay().atOffset(BEIJING).toInstant().toEpochMilli());
                     month.days[date.getDayOfMonth() - 1] += next - start;
                     start = next;
                 }

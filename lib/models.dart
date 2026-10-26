@@ -195,9 +195,50 @@ String durationText(int ms) {
   return minutes > 0 ? '$minutes 分钟' : '${ms ~/ 1000} 秒';
 }
 
+const beijingOffset = Duration(hours: 8);
+
+/// Calendar fields in fixed UTC+8. This UTC-backed value represents wall-clock
+/// fields; convert with [beijingEpoch] before comparing it with a saved instant.
+DateTime beijingCalendar(
+  int year, [
+  int month = 1,
+  int day = 1,
+  int hour = 0,
+  int minute = 0,
+  int second = 0,
+  int millisecond = 0,
+  int microsecond = 0,
+]) => DateTime.utc(
+  year,
+  month,
+  day,
+  hour,
+  minute,
+  second,
+  millisecond,
+  microsecond,
+);
+DateTime beijingTime(int epoch) =>
+    DateTime.fromMillisecondsSinceEpoch(epoch, isUtc: true).add(beijingOffset);
+DateTime beijingNow() => beijingTime(DateTime.now().millisecondsSinceEpoch);
+int beijingEpoch(DateTime calendar) => beijingCalendar(
+  calendar.year,
+  calendar.month,
+  calendar.day,
+  calendar.hour,
+  calendar.minute,
+  calendar.second,
+  calendar.millisecond,
+  calendar.microsecond,
+).subtract(beijingOffset).millisecondsSinceEpoch;
+DateTime? beijingParseDate(String date) =>
+    RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)
+    ? DateTime.tryParse('${date}T00:00:00Z')
+    : null;
+
 String dateText(DateTime d, {bool year = false}) =>
     '${year ? '${d.year}年' : ''}${d.month}月${d.day}日';
 String timeText(int epoch) {
-  final d = DateTime.fromMillisecondsSinceEpoch(epoch);
+  final d = beijingTime(epoch);
   return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }

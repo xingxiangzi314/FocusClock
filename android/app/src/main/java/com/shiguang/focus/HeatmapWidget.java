@@ -18,7 +18,6 @@ import android.view.View;
 import android.widget.RemoteViews;
 import org.json.JSONObject;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
@@ -59,8 +58,8 @@ public final class HeatmapWidget extends AppWidgetProvider {
                 int[] ids = manager.getAppWidgetIds(new ComponentName(app, HeatmapWidget.class));
                 if (ids.length == 0) return;
                 JSONObject data = new JSONObject(Repository.get(app).widgetSnapshot());
-                LocalDate today = LocalDate.now();
-                HeatmapModel.Month month = HeatmapModel.month(data.getJSONArray("sessions"), today, ZoneId.systemDefault());
+                LocalDate today = HeatmapModel.today();
+                HeatmapModel.Month month = HeatmapModel.month(data.getJSONArray("sessions"), today);
                 boolean systemDark = (app.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
                 RemoteViews views = render(app, month, HeatmapModel.dark(data.optString("theme"), systemDark));
                 if (token == revision.get()) manager.updateAppWidget(ids, views);
@@ -94,16 +93,12 @@ public final class HeatmapWidget extends AppWidgetProvider {
         RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget_heatmap);
         views.setInt(R.id.widget_root,"setBackgroundResource",dark ? R.drawable.widget_card_dark : R.drawable.widget_card_light);
         views.setTextColor(R.id.widget_title,ink);
-        views.setTextColor(R.id.widget_month,muted);
-        views.setTextColor(R.id.widget_summary,muted);
-        for (int id : new int[]{R.id.widget_weekday0,R.id.widget_weekday1,R.id.widget_weekday2,R.id.widget_weekday3,R.id.widget_weekday4,R.id.widget_weekday5,R.id.widget_weekday6,R.id.widget_less,R.id.widget_more}) views.setTextColor(id,muted);
-        views.setTextViewText(R.id.widget_month,String.format(Locale.CHINA,"%d.%02d",month.first.getYear(),month.first.getMonthValue()));
-        views.setTextViewText(R.id.widget_summary,String.format(Locale.CHINA,"累计 %d 小时 %d 分钟 · %d 天专注",month.total/3600000,month.total/60000%60,month.focusedDays));
+        views.setTextViewText(R.id.widget_title,month.title());
         views.setOnClickPendingIntent(R.id.widget_root,openDay(context,month.today));
         views.removeAllViews(R.id.widget_weeks);
         HashMap<String,Bitmap> tiles = new HashMap<>();
         for (int week = 0; week < month.weeks; week++) {
-            RemoteViews column = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_week);
+            RemoteViews weekRow = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_week);
             for (int row = 0; row < 7; row++) {
                 LocalDate date = month.date(week,row);
                 RemoteViews cell = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_cell);
@@ -120,15 +115,9 @@ public final class HeatmapWidget extends AppWidgetProvider {
                     cell.setContentDescription(R.id.widget_cell,String.format(Locale.CHINA,"%d月%d日，%s",date.getMonthValue(),date.getDayOfMonth(),future ? "尚未到来" : "专注 " + duration/3600000 + " 小时 " + duration/60000%60 + " 分钟"));
                     if (!future) cell.setOnClickPendingIntent(R.id.widget_cell,openDay(context,date));
                 }
-                column.addView(R.id.widget_week_cells,cell);
+                weekRow.addView(R.id.widget_week_cells,cell);
             }
-            views.addView(R.id.widget_weeks,column);
-        }
-        views.removeAllViews(R.id.widget_legend);
-        for (int level = 0; level <= 5; level++) {
-            RemoteViews swatch = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_swatch);
-            swatch.setImageViewBitmap(R.id.widget_swatch,tile(color(level,dark),false,blue));
-            views.addView(R.id.widget_legend,swatch);
+            views.addView(R.id.widget_weeks,weekRow);
         }
         return views;
     }

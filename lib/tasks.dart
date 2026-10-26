@@ -44,7 +44,7 @@ class _TodoPageState extends State<TodoPage> {
   FocusController get c => widget.controller;
   @override
   Widget build(BuildContext context) {
-    final s = c.state, p = AppColors.of(context), now = DateTime.now();
+    final s = c.state, p = AppColors.of(context), now = beijingNow();
     final stats = c.statistics;
     final tasks = s.tasks.where((t) => showDone || !t.done).toList();
     final done = s.tasks.where((t) => t.done).length;
@@ -501,7 +501,7 @@ class FocusScreen extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  '${dateText(DateTime.now(), year: true)} · ${s.countingDown ? '倒计时' : '正计时'}',
+                  '${dateText(beijingNow(), year: true)} · ${s.countingDown ? '倒计时' : '正计时'}',
                   style: TextStyle(
                     color: p.muted,
                     fontSize: 12,
