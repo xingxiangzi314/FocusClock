@@ -15,7 +15,7 @@ src, classes = root/'src', root/'classes'
 native = project/'android/app/src/main/java/com/shiguang/focus'
 package = src/'com/shiguang/focus'
 package.mkdir(parents=True,exist_ok=True)
-for name in ['HeatmapModel.java','HeatmapWidget.java','HeatmapTiles.java']:
+for name in ['HeatmapModel.java','HeatmapWidget.java','HeatmapTiles.java','HeatmapReferenceLayout.java']:
     (package/name).write_bytes((native/name).read_bytes())
 (package/'Repository.java').write_text('package com.shiguang.focus; public class Repository {public static Repository get(android.content.Context c){return null;}public String widgetSnapshot(){return "";}}',encoding='utf-8')
 (package/'FocusActivity.java').write_text('package com.shiguang.focus; public class FocusActivity {}',encoding='utf-8')
@@ -86,10 +86,17 @@ public class HeatmapTest {
    ok(colors.size()==6,"six distinct shades, dark="+dark);
    ok(HeatmapWidget.color(5,dark)==(dark?0xff409aff:0xff087dff),"top band equals app blue, dark="+dark);
   }
-  ok(!HeatmapWidget.compactForHeight(6,140),"six weeks at standard height keep approved spacing");
-  ok(HeatmapWidget.compactForHeight(6,110),"six weeks at minimum height use compact spacing");
-  ok(!HeatmapWidget.compactForHeight(4,110),"short February can keep full spacing");
-  ok(HeatmapWidget.compactForHeight(5,110),"five weeks at minimum height use compact spacing");
+  HeatmapReferenceLayout normal=new HeatmapReferenceLayout(220,164,5);
+  ok(!normal.compact,"standard reference card uses regular cells");
+  ok(new HeatmapReferenceLayout(220,140,6).compact,"six week small card adapts cell corners");
+  ok(!new HeatmapReferenceLayout(180,110,4).compact,"short February keeps regular cells");
+  ok(new HeatmapReferenceLayout(180,110,5).compact,"minimum five week card adapts cell corners");
+  ok(Math.abs((normal.padX+normal.gapX)/normal.width-58f/906)<0.0001,"calendar horizontal inset follows reference");
+  boolean readable=true;for(int weeks=4;weeks<=6;weeks++){HeatmapReferenceLayout m=new HeatmapReferenceLayout(180,110,weeks);readable&=m.day>0&&m.day<m.cellHeight;}
+  ok(readable,"minimum card retains room for date numbers across four to six weeks");
+  JSONArray demo=new JSONArray();int[] demoDays={5,9,10,11,12,13,15,16,17,20,21,22,23};int[] demoMinutes={120,180,180,480,180,54,360,360,360,360,360,180,360};
+  for(int i=0;i<demoDays.length;i++){long begin=LocalDate.of(2026,10,demoDays[i]).atStartOfDay(zone).toInstant().toEpochMilli();demo.put(records(begin,begin+demoMinutes[i]*60000L).getJSONObject(0));}
+  ok(HeatmapModel.month(demo,today).total==3534*60000L,"month summary uses the same records as blue heatmap");
   java.util.HashSet<Integer> backgroundIds=new java.util.HashSet<>();
   for(boolean compact:new boolean[]{false,true})for(boolean dark:new boolean[]{false,true})for(boolean selected:new boolean[]{false,true})for(int level=0;level<=5;level++)backgroundIds.add(HeatmapTiles.background(level,dark,selected,compact));
   ok(backgroundIds.size()==48,"all theme and density background states have explicit resources");
@@ -119,17 +126,18 @@ assert int(info.get(a+'updatePeriodMillis'))>=1800000
 assert 'PendingIntent.getActivity' in (native/'HeatmapWidget.java').read_text(encoding='utf-8')
 print('Private widget provider, 3x2 metadata, periodic update and direct activity launch verified.')
 
-layout=ET.parse(res/'layout/widget_heatmap_spaced.xml').getroot()
+layout=ET.parse(res/'layout/widget_heatmap_reference.xml').getroot()
 container=next(item for item in layout if item.get(a+'id')=='@+id/widget_weeks')
 assert container.get(a+'orientation')=='vertical'
 week=ET.parse(res/'layout/widget_heatmap_week.xml').getroot()
 assert week.get(a+'orientation')=='horizontal' and week.get(a+'layout_width')=='match_parent'
 assert week.get(a+'layout_height')=='0dp' and week.get(a+'layout_weight')=='1'
-cell=ET.parse(res/'layout/widget_heatmap_cell.xml').getroot()
+cell=ET.parse(res/'layout/widget_heatmap_cell_reference.xml').getroot()
 assert cell.get(a+'layout_width')=='0dp' and cell.get(a+'layout_weight')=='1'
 ids={item.get(a+'id') for item in layout.iter()}
-assert not ids.intersection({'@+id/widget_month','@+id/widget_summary','@+id/widget_legend','@+id/widget_weekday0'})
-print('Compact seven-column calendar rows, removed labels and weighted space verified.')
+assert {'@+id/widget_title','@+id/widget_stats','@+id/widget_hours','@+id/widget_minutes','@+id/widget_weekdays'}.issubset(ids)
+assert layout.get(a+'weightSum')=='572'
+print('Reference title, live month summary, weekday header and calendar rows verified.')
 
 import json
 palette=json.loads((root/'preview.json').read_text(encoding='utf-8'))['colors']
@@ -142,4 +150,5 @@ for compact in [False,True]:
                 assert shape.find('solid').get(a+'color')==palette[int(dark)][level]
                 assert shape.find('corners').get(a+'radius')==('3dp' if compact else '4dp')
                 assert (shape.find('stroke') is not None)==today
+                if today:assert shape.find('stroke').get(a+'color')=='#FFFFFF'
 print('All 48 native backgrounds match the live palette and fixed corner radii.')

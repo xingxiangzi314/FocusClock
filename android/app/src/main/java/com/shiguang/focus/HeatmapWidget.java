@@ -10,6 +10,7 @@ import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 import org.json.JSONObject;
@@ -60,10 +61,10 @@ public final class HeatmapWidget extends AppWidgetProvider {
                 for (int id : ids) {
                     if (token != revision.get()) return;
                     Bundle options = manager.getAppWidgetOptions(id);
-                    boolean portraitCompact = compactForHeight(month.weeks, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,140));
-                    boolean landscapeCompact = compactForHeight(month.weeks, options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,110));
-                    RemoteViews portrait = render(app,month,dark,portraitCompact);
-                    RemoteViews views = portraitCompact == landscapeCompact ? portrait : new RemoteViews(render(app,month,dark,landscapeCompact),portrait);
+                    int pw = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH,220), ph = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT,164);
+                    int lw = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH,pw), lh = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT,110);
+                    RemoteViews portrait = render(app,month,dark,pw,ph);
+                    RemoteViews views = pw == lw && ph == lh ? portrait : new RemoteViews(render(app,month,dark,lw,lh),portrait);
                     if (token == revision.get()) manager.updateAppWidget(id,views);
                 }
             } catch (Exception ex) {Log.w("HeatmapWidget", "Keeping last widget view after refresh failure", ex);}
@@ -83,28 +84,48 @@ public final class HeatmapWidget extends AppWidgetProvider {
         for (int shift : new int[]{0,8,16}) value |= ((((foreground >> shift) & 255) * alpha + ((background >> shift) & 255) * (255-alpha) + 127) / 255) << shift;
         return value;
     }
-    static boolean compactForHeight(int weeks, int height) {return height < 52 + 4 * (weeks - 1) + 11 * weeks;}
-    static RemoteViews render(Context context, HeatmapModel.Month month, boolean dark, boolean compact) {
-        int ink = dark ? 0xfff3f4f8 : 0xff191c22, muted = dark ? 0xff9ba2af : 0xff7d808b;
-        RemoteViews views = new RemoteViews(context.getPackageName(), compact ? R.layout.widget_heatmap_compact : R.layout.widget_heatmap_spaced);
-        views.setInt(R.id.widget_root,"setBackgroundResource",dark ? R.drawable.widget_card_dark : R.drawable.widget_card_light);
-        views.setTextColor(R.id.widget_title,ink);
-        views.setTextViewText(R.id.widget_title,month.title());
+    private static int px(Context context, float dp) {return Math.round(dp*context.getResources().getDisplayMetrics().density);}
+    private static void textSize(RemoteViews view, int id, float dp) {view.setTextViewTextSize(id,TypedValue.COMPLEX_UNIT_DIP,dp);}
+    static RemoteViews render(Context context, HeatmapModel.Month month, boolean dark, int width, int height) {
+        HeatmapReferenceLayout layout = new HeatmapReferenceLayout(width,height,month.weeks);
+        int ink = dark ? 0xfff3f4f8 : 0xff191c22, muted = dark ? 0xff9ba2af : 0xff9b9b9b;
+        RemoteViews views = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_reference);
+        int background = dark ? R.drawable.widget_reference_dark : R.drawable.widget_reference_light;
+        views.setInt(R.id.widget_root,"setBackgroundResource",background);
+        views.setViewPadding(R.id.widget_root,px(context,layout.padX),px(context,layout.padTop),px(context,layout.padX),px(context,layout.padBottom));
+        views.setTextColor(R.id.widget_title,dark ? 0xfff3f4f8 : 0xff000000);
+        views.setTextViewText(R.id.widget_title,"本月专注");
+        textSize(views,R.id.widget_title,layout.title);
+        views.setTextViewText(R.id.widget_hours,Long.toString(month.total/3600000));
+        views.setTextViewText(R.id.widget_minutes,Long.toString(month.total/60000%60));
+        for (int value : new int[]{R.id.widget_hours,R.id.widget_minutes}) {views.setTextColor(value,dark ? 0xfff3f4f8 : 0xff000000);textSize(views,value,layout.number);}
+        for (int unit : new int[]{R.id.widget_hours_unit,R.id.widget_minutes_unit}) {views.setTextColor(unit,muted);textSize(views,unit,layout.unit);}
+        views.setViewPadding(R.id.widget_stats,0,0,px(context,layout.gapX),0);
+        views.setContentDescription(R.id.widget_stats,String.format(Locale.CHINA,"本月专注 %d 小时 %d 分钟",month.total/3600000,month.total/60000%60));
         views.setOnClickPendingIntent(R.id.widget_root,openDay(context,month.today));
+        views.removeAllViews(R.id.widget_weekdays);
+        String[] labels = {"一","二","三","四","五","六","日"};
+        for (String label : labels) {
+            RemoteViews day = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_weekday);
+            day.setTextViewText(R.id.widget_weekday_label,label);day.setTextColor(R.id.widget_weekday_label,muted);
+            textSize(day,R.id.widget_weekday_label,layout.weekday);views.addView(R.id.widget_weekdays,day);
+        }
         views.removeAllViews(R.id.widget_weeks);
         for (int week = 0; week < month.weeks; week++) {
             RemoteViews weekRow = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_week);
             for (int row = 0; row < 7; row++) {
                 LocalDate date = month.date(week,row);
-                RemoteViews cell = new RemoteViews(context.getPackageName(),compact ? R.layout.widget_heatmap_cell_compact : R.layout.widget_heatmap_cell);
+                RemoteViews cell = new RemoteViews(context.getPackageName(),R.layout.widget_heatmap_cell_reference);
+                cell.setViewPadding(R.id.widget_cell,px(context,layout.gapX),px(context,layout.gapY),px(context,layout.gapX),px(context,layout.gapY));
                 if (!month.contains(date)) cell.setViewVisibility(R.id.widget_cell,View.INVISIBLE);
                 else {
                     boolean future = date.isAfter(month.today), today = date.equals(month.today);
                     long duration = month.duration(date);
                     int level = future ? 0 : HeatmapModel.level(duration);
-                    cell.setInt(R.id.widget_cell_surface,"setBackgroundResource",HeatmapTiles.background(level,dark,today,compact));
+                    cell.setInt(R.id.widget_cell_surface,"setBackgroundResource",HeatmapTiles.background(level,dark,today,layout.compact));
                     cell.setTextViewText(R.id.widget_cell_day,Integer.toString(date.getDayOfMonth()));
                     cell.setTextColor(R.id.widget_cell_day,future ? muted : level >= 3 ? 0xffffffff : ink);
+                    textSize(cell,R.id.widget_cell_day,layout.day);
                     cell.setContentDescription(R.id.widget_cell,String.format(Locale.CHINA,"%d月%d日，%s",date.getMonthValue(),date.getDayOfMonth(),future ? "尚未到来" : "专注 " + duration/3600000 + " 小时 " + duration/60000%60 + " 分钟"));
                     if (!future) cell.setOnClickPendingIntent(R.id.widget_cell,openDay(context,date));
                 }

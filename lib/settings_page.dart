@@ -155,7 +155,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 27),
         Text(
-          '拾光 · 2.1.3\n专注当下，自有回响。',
+          '拾光 · 2.1.4\n专注当下，自有回响。',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 10, color: p.muted, height: 2),
         ),
@@ -555,7 +555,7 @@ class _GoalEditorState extends State<GoalEditor> {
   );
 }
 
-Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.1.3', [
+Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.1.4', [
   '用一段段专注时间，积累看得见的成长。',
   '后台与锁屏\n开始计时后会显示常驻通知，可以暂停、继续或结束。允许通知以接收完成提醒。系统限制后台运行时，请在手机设置中允许拾光后台活动。',
   '计时与统计\n新计时有效专注超过 10 秒才生成记录，暂停时间不累计。倒计时结束按设定时长保存，正计时单次最多记录 24 小时。跨日专注按实际区间分配，累计次数只计一次。日均为首次专注日至今的总时长除以自然日数，包含未专注日。',

@@ -19,7 +19,7 @@ for compact in [False,True]:
             refs=[]
             for level in range(6):
                 name=f'widget_day_{"compact" if compact else "normal"}_{"dark" if dark else "light"}_{"today" if today else "plain"}_{level}'
-                stroke=f'<stroke android:width="1.2dp" android:color="{"#409aff" if dark else "#087dff"}"/>' if today else ''
+                stroke='<stroke android:width="1.2dp" android:color="#FFFFFF"/>' if today else ''
                 (res/(name+'.xml')).write_text(f'<shape xmlns:android="http://schemas.android.com/apk/res/android"><solid android:color="{color(level,dark)}"/><corners android:radius="{3 if compact else 4}dp"/>{stroke}</shape>\n',encoding='utf-8')
                 refs.append('R.drawable.'+name)
             groups.append('        {'+', '.join(refs)+'}')
@@ -36,3 +36,13 @@ final class HeatmapTiles {
 }
 ''',encoding='utf-8')
 print('Generated 48 size-independent rounded backgrounds and native lookup.')
+for dark in [False,True]:
+    name='widget_reference_'+('dark' if dark else 'light')
+    colors=['#242833','#20242c','#1a1e26'] if dark else ['#ffffff','#fffbfb','#fff5f6']
+    (res/(name+'.xml')).write_text(f'''<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt" android:width="220dp" android:height="164dp" android:viewportWidth="906" android:viewportHeight="674">
+    <path android:pathData="M76,0 H830 C871.974,0 906,34.026 906,76 V598 C906,639.974 871.974,674 830,674 H76 C34.026,674 0,639.974 0,598 V76 C0,34.026 34.026,0 76,0 Z">
+        <aapt:attr name="android:fillColor"><gradient android:startX="0" android:startY="0" android:endX="906" android:endY="330" android:type="linear">
+            <item android:offset="0" android:color="{colors[0]}"/><item android:offset="0.47" android:color="{colors[1]}"/><item android:offset="1" android:color="{colors[2]}"/>
+        </gradient></aapt:attr>
+    </path>
+</vector>\n''',encoding='utf-8')
