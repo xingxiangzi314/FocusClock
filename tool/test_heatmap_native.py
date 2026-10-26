@@ -105,10 +105,12 @@ manifest = ET.parse(project/'android/app/src/main/AndroidManifest.xml').getroot(
 receiver = next(item for item in manifest.find('application').findall('receiver') if item.get(a+'name')=='.HeatmapWidget')
 assert receiver.get(a+'exported') == 'false'
 info = ET.parse(res/'xml/widget_heatmap_info.xml').getroot()
-assert info.get(a+'targetCellWidth') == '4' and info.get(a+'targetCellHeight') == '3'
+assert info.get(a+'targetCellWidth') == '3' and info.get(a+'targetCellHeight') == '2'
+assert info.get(a+'minWidth') == info.get(a+'minResizeWidth') == '180dp'
+assert info.get(a+'minHeight') == info.get(a+'minResizeHeight') == '110dp'
 assert int(info.get(a+'updatePeriodMillis'))>=1800000
 assert 'PendingIntent.getActivity' in (native/'HeatmapWidget.java').read_text(encoding='utf-8')
-print('Private widget provider, 4x3 metadata, periodic update and direct activity launch verified.')
+print('Private widget provider, 3x2 metadata, periodic update and direct activity launch verified.')
 
 layout=ET.parse(res/'layout/widget_heatmap.xml').getroot()
 container=next(item for item in layout if item.get(a+'id')=='@+id/widget_weeks')

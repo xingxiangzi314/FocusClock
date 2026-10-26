@@ -84,8 +84,8 @@ public final class HeatmapWidget extends AppWidgetProvider {
         Bitmap bitmap = Bitmap.createBitmap(48,48,Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);paint.setColor(color);
-        canvas.drawRoundRect(new RectF(3,3,45,45),9,9,paint);
-        if (today) {paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);paint.setColor(blue);canvas.drawRoundRect(new RectF(3,3,45,45),9,9,paint);}
+        canvas.drawRoundRect(new RectF(3,3,45,45),3,3,paint);
+        if (today) {paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);paint.setColor(blue);canvas.drawRoundRect(new RectF(3,3,45,45),3,3,paint);}
         return bitmap;
     }
     static RemoteViews render(Context context, HeatmapModel.Month month, boolean dark) {
