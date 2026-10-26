@@ -4,15 +4,15 @@
     android:background="@drawable/widget_reference_light" android:weightSum="572">
     <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="58"
         android:text="本月专注" android:textSize="11sp" android:textStyle="bold" android:gravity="center_vertical" android:includeFontPadding="false" android:singleLine="true" />
-    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="12" />
-    <LinearLayout android:id="@+id/widget_stats" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="64"
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="0" />
+    <LinearLayout android:id="@+id/widget_stats" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="72"
         android:orientation="horizontal" android:gravity="end|center_vertical" android:baselineAligned="true">
         <TextView android:id="@+id/widget_hours" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textStyle="bold" android:textSize="16sp" android:includeFontPadding="false" android:singleLine="true" />
         <TextView android:id="@+id/widget_hours_unit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="2dp" android:layout_marginEnd="4dp" android:text="小时" android:textSize="7sp" android:includeFontPadding="false" android:singleLine="true" />
         <TextView android:id="@+id/widget_minutes" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textStyle="bold" android:textSize="16sp" android:includeFontPadding="false" android:singleLine="true" />
         <TextView android:id="@+id/widget_minutes_unit" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="2dp" android:text="分钟" android:textSize="7sp" android:includeFontPadding="false" android:singleLine="true" />
     </LinearLayout>
-    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="17" />
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="21" />
     <LinearLayout android:id="@+id/widget_weekdays" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="48" android:orientation="horizontal" />
     <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" />
     <LinearLayout android:id="@+id/widget_weeks" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="372" android:orientation="vertical" />
