@@ -195,6 +195,11 @@ String durationText(int ms) {
   return minutes > 0 ? '$minutes 分钟' : '${ms ~/ 1000} 秒';
 }
 
+String goalHoursText(int minutes) =>
+    (minutes / 60).toStringAsFixed(4).replaceFirst(RegExp(r'\.?0+$'), '');
+
+String hoursMinutesText(int ms) => '${ms ~/ 3600000}小时${ms ~/ 60000 % 60}分钟';
+
 const beijingOffset = Duration(hours: 8);
 
 /// Calendar fields in fixed UTC+8. This UTC-backed value represents wall-clock

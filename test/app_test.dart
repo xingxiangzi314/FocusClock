@@ -26,6 +26,27 @@ Future<FocusController> launch(
 }
 
 void main() {
+  testWidgets('每日目标按小时编辑并保留原分钟精度', (tester) async {
+    final gateway = TestGateway();
+    (gateway.data['settings'] as Map)['goal'] = 25;
+    final c = await launch(tester, gateway);
+    await tester.tap(find.text('设置').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('每日专注目标'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存目标'));
+    await tester.pumpAndSettle();
+    expect(c.state.settings.goal, 25);
+    await tester.tap(find.text('每日专注目标'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), '1.5');
+    await tester.tap(find.text('保存目标'));
+    await tester.pumpAndSettle();
+    expect(c.state.settings.goal, 90);
+    expect(find.text('1.5 小时'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('触感强度保存后立即体验、重新打开保留并可恢复默认', (tester) async {
     final gateway = TestGateway();
     final c = await launch(tester, gateway);
@@ -138,11 +159,9 @@ void main() {
       final donut = tester.getRect(
         find.byKey(const ValueKey('distribution-donut')),
       );
-      expect(
-        donut.center.dy,
-        closeTo((periods.center.dy + distribution.bottom) / 2, .01),
-      );
-      expect(donut.height, closeTo(104, .01));
+      expect(donut.top - periods.bottom, closeTo(10, .01));
+      expect(distribution.bottom - donut.bottom, closeTo(10, .01));
+      expect(donut.height, closeTo(120, .01));
       expect(find.byKey(const ValueKey('statistics-overview')), findsNothing);
       final title = tester.getRect(find.text('专注时长分布'));
       final date = tester.getRect(

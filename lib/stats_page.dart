@@ -107,12 +107,13 @@ class _StatsPageState extends State<StatsPage> {
                     '次',
                     horizontalOffset: -8,
                   ),
-                  _metric(context, '专注时长', '${stats.total ~/ 60000}', '分钟'),
+                  _metric(context, '专注时长', '', '', duration: stats.total),
                   _metric(
                     context,
                     '日均时长',
-                    '${stats.dailyAverage ~/ 60000}',
-                    '分钟',
+                    '',
+                    '',
+                    duration: stats.dailyAverage,
                     horizontalOffset: 8,
                   ),
                 ],
@@ -125,7 +126,7 @@ class _StatsPageState extends State<StatsPage> {
         const SizedBox(height: 12),
         Surface(
           key: const ValueKey('statistics-heatmap'),
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -201,85 +202,40 @@ class _StatsPageState extends State<StatsPage> {
     DateTime now,
     int total,
   ) {
-    final diameter = (MediaQuery.sizeOf(context).height * .13).clamp(
-      88.0,
-      112.0,
-    );
-    double lineHeight(String text, double size) {
-      final painter = TextPainter(
-        text: TextSpan(
-          text: text,
-          style: DefaultTextStyle.of(
-            context,
-          ).style.merge(TextStyle(fontSize: size, fontWeight: FontWeight.w600)),
-        ),
-        textDirection: Directionality.of(context),
-        textScaler: MediaQuery.textScalerOf(context),
-      )..layout();
-      final height = painter.height;
-      painter.dispose();
-      return height;
-    }
-
-    final titleHeight = math.max(21.0, lineHeight('专注时长分布', 16));
-    final periodHeight = lineHeight('日', 10) + 14;
-    // Preserve the 2.0.2 card's intrinsic height after removing its separate date row.
-    final cardHeight =
-        24 + titleHeight + 8 + periodHeight + 2 + 48 + 6 + diameter;
-    final headerHeight = math.max(28.0, titleHeight);
-    final periodTop = 12 + headerHeight + 8;
-    final chartCenter = (periodTop + periodHeight / 2 + cardHeight) / 2;
-    return SizedBox(
-      height: cardHeight,
-      child: Surface(
-        key: const ValueKey('statistics-distribution'),
-        padding: EdgeInsets.zero,
-        child: Stack(
-          children: [
-            Positioned(
-              top: 12,
-              left: 16,
-              right: 16,
-              height: headerHeight,
-              child: _distributionHeading(context, range, now),
+    return Surface(
+      key: const ValueKey('statistics-distribution'),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+      child: Column(
+        children: [
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 28),
+            child: _distributionHeading(context, range, now),
+          ),
+          const SizedBox(height: 6),
+          FractionallySizedBox(
+            widthFactor: .55,
+            child: ChoiceBar<FocusPeriod>(
+              key: const ValueKey('statistics-periods'),
+              compact: true,
+              values: FocusPeriod.values,
+              selected: period,
+              label: (v) => v.label,
+              onChanged: (v) {
+                if (period == v) return;
+                c.feedback();
+                setState(() {
+                  period = v;
+                  recordLimit = 10;
+                });
+              },
             ),
-            Positioned(
-              top: periodTop,
-              left: 16,
-              right: 16,
-              child: Align(
-                alignment: Alignment.center,
-                child: FractionallySizedBox(
-                  widthFactor: .55,
-                  child: ChoiceBar<FocusPeriod>(
-                    key: const ValueKey('statistics-periods'),
-                    compact: true,
-                    values: FocusPeriod.values,
-                    selected: period,
-                    label: (v) => v.label,
-                    onChanged: (v) {
-                      if (period == v) return;
-                      c.feedback();
-                      setState(() {
-                        period = v;
-                        recordLimit = 10;
-                      });
-                    },
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              top: chartCenter - diameter / 2,
-              left: 16,
-              right: 16,
-              child: DistributionChart(
-                items: c.statistics.distribution(range),
-                total: total,
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          DistributionChart(
+            items: c.statistics.distribution(range),
+            total: total,
+          ),
+        ],
       ),
     );
   }
@@ -395,6 +351,7 @@ class _StatsPageState extends State<StatsPage> {
     String label,
     String value,
     String unit, {
+    int? duration,
     double horizontalOffset = 0,
   }) {
     final p = AppColors.of(context);
@@ -412,23 +369,29 @@ class _StatsPageState extends State<StatsPage> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.center,
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: value,
-                        style: const TextStyle(
-                          fontSize: 23,
-                          fontWeight: FontWeight.w600,
+                child: duration != null
+                    ? HoursMinutesText(
+                        milliseconds: duration,
+                        numberSize: 20,
+                        unitSize: 9,
+                      )
+                    : Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: value,
+                              style: const TextStyle(
+                                fontSize: 23,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' $unit',
+                              style: TextStyle(fontSize: 10, color: p.muted),
+                            ),
+                          ],
                         ),
                       ),
-                      TextSpan(
-                        text: ' $unit',
-                        style: TextStyle(fontSize: 10, color: p.muted),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ],
@@ -553,16 +516,21 @@ class DistributionChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = AppColors.of(context);
-    final diameter = (MediaQuery.sizeOf(context).height * .13).clamp(
-      88.0,
-      112.0,
+    final diameter = (MediaQuery.sizeOf(context).height * .15).clamp(
+      104.0,
+      132.0,
+    );
+    final scaler = MediaQuery.textScalerOf(context);
+    final taskRowHeight = math.max(
+      diameter / 3,
+      (scaler.scale(11) + scaler.scale(9)) * 1.2 + 6,
     );
     return SizedBox(
       height: diameter,
       child: Row(
         children: [
           Semantics(
-            label: '按任务分布，共 ${durationText(total)}',
+            label: '按任务分布，共 ${hoursMinutesText(total)}',
             child: SizedBox(
               key: const ValueKey('distribution-donut'),
               width: diameter,
@@ -570,18 +538,14 @@ class DistributionChart extends StatelessWidget {
               child: CustomPaint(
                 painter: _DonutPainter(items, total, p.well),
                 child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${total ~/ 60000}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text('分钟', style: TextStyle(color: p.muted, fontSize: 9)),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: HoursMinutesText(
+                      milliseconds: total,
+                      numberSize: 21,
+                      unitSize: 9,
+                      minuteSize: 12,
+                    ),
                   ),
                 ),
               ),
@@ -608,8 +572,9 @@ class DistributionChart extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         for (final item in items)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 4),
+                          SizedBox(
+                            key: ValueKey('distribution-task-${item.taskId}'),
+                            height: taskRowHeight,
                             child: Row(
                               children: [
                                 Container(
@@ -623,6 +588,7 @@ class DistributionChart extends StatelessWidget {
                                 const SizedBox(width: 7),
                                 Expanded(
                                   child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
@@ -635,6 +601,7 @@ class DistributionChart extends StatelessWidget {
                                               overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
                                                 fontSize: 11,
+                                                height: 1.2,
                                               ),
                                             ),
                                           ),
@@ -644,16 +611,20 @@ class DistributionChart extends StatelessWidget {
                                             style: TextStyle(
                                               color: p.muted,
                                               fontSize: 9,
+                                              height: 1.2,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const SizedBox(height: 3),
+                                      const SizedBox(height: 2),
                                       Text(
-                                        durationText(item.duration),
+                                        hoursMinutesText(item.duration),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           color: p.muted,
                                           fontSize: 9,
+                                          height: 1.2,
                                         ),
                                       ),
                                     ],

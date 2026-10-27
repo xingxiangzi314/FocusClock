@@ -79,26 +79,17 @@ class _TodoPageState extends State<TodoPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text: '${stats.today ~/ 60000}',
-                            style: const TextStyle(
-                              fontSize: 38,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          TextSpan(
-                            text: ' 分钟',
-                            style: TextStyle(fontSize: 13, color: p.muted),
-                          ),
-                        ],
-                      ),
+                    child: HoursMinutesText(
+                      milliseconds: stats.today,
+                      numberSize: 32,
+                      unitSize: 12,
+                      fontWeight: FontWeight.w700,
+                      alignment: Alignment.centerLeft,
                     ),
                   ),
+                  const SizedBox(width: 10),
                   Text(
-                    '目标 ${s.settings.goal} 分钟',
+                    '目标 ${goalHoursText(s.settings.goal)} 小时',
                     style: TextStyle(fontSize: 12, color: p.muted),
                   ),
                 ],

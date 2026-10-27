@@ -48,19 +48,28 @@ void main() {
     final gateway = TestGateway();
     final now = beijingNow();
     final sessions = gateway.data['sessions'] as List;
+    (gateway.data['tasks'] as List).add({
+      'id': 'english',
+      'title': '英语练习',
+      'color': '#31aa91',
+      'icon': 'language',
+      'mode': 'down',
+      'minutes': 30,
+      'done': false,
+    });
     var sequence = 0;
     for (var day = 0; day < 38; day++) {
       if (day % 6 == 4) continue;
-      for (var task = 0; task < 2; task++) {
+      for (var task = 0; task < 3; task++) {
         final start = beijingEpoch(
           beijingCalendar(now.year, now.month, now.day - day, 8 + task * 2),
         );
         final duration = (25 + (day * 7 + task * 13) % 50) * 60000;
         sessions.add({
           'id': 'demo-${sequence++}',
-          'taskId': task == 0 ? 'math' : 'read',
-          'title': task == 0 ? '数学' : '阅读',
-          'color': task == 0 ? '#087dff' : '#ed9b45',
+          'taskId': ['math', 'read', 'english'][task],
+          'title': ['数学', '阅读', '英语练习'][task],
+          'color': ['#087dff', '#ed9b45', '#31aa91'][task],
           'mode': 'down',
           'startAt': start,
           'endAt': start + duration,
@@ -109,6 +118,19 @@ void main() {
     await tester.tap(find.text('统计数据').last);
     await tester.pumpAndSettle();
     await capture('stats');
+    tester.view.physicalSize = const Size(360, 800);
+    await tester.pumpAndSettle();
+    final chart = tester.getRect(
+      find.byKey(const ValueKey('distribution-donut')),
+    );
+    for (final id in ['math', 'read', 'english']) {
+      final row = tester.getRect(find.byKey(ValueKey('distribution-task-$id')));
+      expect(row.top, greaterThanOrEqualTo(chart.top - .01));
+      expect(row.bottom, lessThanOrEqualTo(chart.bottom + .01));
+    }
+    await capture('stats-compact');
+    tester.view.physicalSize = const Size(412, 915);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('周').first);
     await tester.pumpAndSettle();
     await capture('stats-week');

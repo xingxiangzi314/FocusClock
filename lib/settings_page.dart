@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'controller.dart';
+import 'models.dart';
 import 'ui.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -31,7 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Icons.flag_outlined,
                 '每日专注目标',
                 '给每天一个恰到好处的小目标',
-                value: '${settings.goal} 分钟',
+                value: '${goalHoursText(settings.goal)} 小时',
                 onTap: () => _goal(context),
               ),
               _row(
@@ -155,7 +156,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         const SizedBox(height: 27),
         Text(
-          '拾光 · 2.1.5\n专注当下，自有回响。',
+          '拾光 · 2.1.6\n专注当下，自有回响。',
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 10, color: p.muted, height: 2),
         ),
@@ -483,7 +484,7 @@ class _GoalEditorState extends State<GoalEditor> {
   void initState() {
     super.initState();
     goal = TextEditingController(
-      text: '${widget.controller.state.settings.goal}',
+      text: goalHoursText(widget.controller.state.settings.goal),
     );
   }
 
@@ -509,15 +510,29 @@ class _GoalEditorState extends State<GoalEditor> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const SectionTitle('每日专注目标'),
-            const Text('每日目标（5–1440 分钟）', style: TextStyle(fontSize: 13)),
+            const Text('每日目标（小时）', style: TextStyle(fontSize: 13)),
             const SizedBox(height: 12),
             TextFormField(
               controller: goal,
-              keyboardType: TextInputType.number,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+              ],
+              decoration: const InputDecoration(
+                suffixText: '小时',
+                helperText: '支持小数，例如 1.5 小时',
+              ),
               validator: (v) {
-                final n = int.tryParse(v ?? '');
-                return n == null || n < 5 || n > 1440 ? '请输入 5–1440 分钟' : null;
+                final n = double.tryParse(v ?? '');
+                return n == null ||
+                        !n.isFinite ||
+                        n <= 0 ||
+                        n > 24 ||
+                        (n * 60).round() < 5
+                    ? '请输入 0.0833–24 小时'
+                    : null;
               },
             ),
             const SizedBox(height: 16),
@@ -538,7 +553,7 @@ class _GoalEditorState extends State<GoalEditor> {
                       setState(() => saving = true);
                       final ok = await widget.controller.command('setting', {
                         'key': 'goal',
-                        'value': int.parse(goal.text),
+                        'value': (double.parse(goal.text) * 60).round(),
                       });
                       if (!context.mounted) return;
                       if (ok)
@@ -555,7 +570,7 @@ class _GoalEditorState extends State<GoalEditor> {
   );
 }
 
-Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.1.5', [
+Future<void> showAbout(BuildContext context) => _info(context, '关于拾光 · 2.1.6', [
   '用一段段专注时间，积累看得见的成长。',
   '后台与锁屏\n开始计时后会显示常驻通知，可以暂停、继续或结束。允许通知以接收完成提醒。系统限制后台运行时，请在手机设置中允许拾光后台活动。',
   '计时与统计\n新计时有效专注超过 10 秒才生成记录，暂停时间不累计。倒计时结束按设定时长保存，正计时单次最多记录 24 小时。跨日专注按实际区间分配，累计次数只计一次。日均为首次专注日至今的总时长除以自然日数，包含未专注日。',

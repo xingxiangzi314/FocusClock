@@ -153,7 +153,7 @@ class PageLayout extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      Padding(padding: const EdgeInsets.fromLTRB(20, 10, 20, 0), child: header),
+      Padding(padding: const EdgeInsets.fromLTRB(20, 2, 20, 0), child: header),
       Expanded(
         child: ClipRect(
           child: SingleChildScrollView(
@@ -218,6 +218,61 @@ class PageHeader extends StatelessWidget {
       ),
     ),
   );
+}
+
+class HoursMinutesText extends StatelessWidget {
+  final int milliseconds;
+  final double numberSize, unitSize;
+  final double? minuteSize;
+  final FontWeight fontWeight;
+  final Alignment alignment;
+  const HoursMinutesText({
+    super.key,
+    required this.milliseconds,
+    this.numberSize = 23,
+    this.unitSize = 10,
+    this.minuteSize,
+    this.fontWeight = FontWeight.w600,
+    this.alignment = Alignment.center,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final minutes = milliseconds ~/ 60000;
+    final unitStyle = TextStyle(
+      fontSize: unitSize,
+      fontWeight: FontWeight.normal,
+      color: AppColors.of(context).muted,
+    );
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: alignment,
+      child: Text.rich(
+        TextSpan(
+          style: TextStyle(fontSize: numberSize, fontWeight: fontWeight),
+          children: [
+            TextSpan(text: '${minutes ~/ 60}'),
+            TextSpan(text: '小时', style: unitStyle),
+            const TextSpan(text: ' '),
+            TextSpan(
+              text: '${minutes % 60}',
+              style: minuteSize == null
+                  ? null
+                  : TextStyle(
+                      fontSize: minuteSize,
+                      fontWeight: FontWeight.normal,
+                      color: AppColors.of(context).muted,
+                    ),
+            ),
+            TextSpan(text: '分钟', style: unitStyle),
+          ],
+        ),
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        softWrap: false,
+      ),
+    );
+  }
 }
 
 class RoundAction extends StatelessWidget {
