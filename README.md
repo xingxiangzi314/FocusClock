@@ -1,132 +1,154 @@
-# 拾光 · Flutter 版
+<div align="center">
 
-离线安卓学习计时 App，版本 **2.1.6+25**，包名 `com.shiguang.focus`，支持 Android 8.0 及以上。页面使用较小、较轻的标题，时钟卡片约占手机屏幕四分之一，统计依次为累计、分布与热力图。保留浅灰背景、大圆角卡片、亮蓝色操作按钮和悬浮导航。
+# 拾光 · FocusClock
 
-所有版本说明持续维护在 [更新说明](../更新说明.md)。默认仅交付最新 APK 与签名附属文件，不生成新的源码 ZIP。本目录为最新源码；保留的 1.0.3 源码 ZIP 是历史归档。
+把时间，留给重要的事。
 
-2.0.4 以 2.0.2 的布局为基准，仅缩小设置分组文字、将统计日期移到分布标题右侧并删除卡片内日历，以及将原尺寸饼图在周期文字与卡片底边之间垂直居中。三张卡片的高度、间距及热力图保持 2.0.2 的样式。
+一个离线的 Android 学习计时 App，记录每一段专注，看到自己的积累。
 
-2.0.6 增加 8 瓣背景反向旋转及浅灰到极淡蓝色渐变，背景恢复首次横向中心后向上移动。累计专注三组数据居中，两侧再分别向外微移 8 个逻辑像素；今日专注到学习待办标题的间距缩小为 12。其余界面沿用原布局。
+**Android 8.0+ · Flutter / Dart + Java · v2.1.6**
 
-2.0.7 将触感改为短促轻触，新增 1–100% 强度调节（默认 35%）、立即体验和恢复默认，强度可持久保存并随备份导入导出。
+</div>
 
-当前使用原版蓝底白色时钟图标，所有主题保持同一图标。主题保留连续颜色渐变；主题面板防止重复打开和重复保存，不再修改桌面组件或最近任务图标。2.0.8 的静态入口保留用于覆盖升级兼容。具体版本记录统一见更新说明。
+## 界面预览
 
-本月专注热力小部件默认 3×2，按确认参考图显示“本月专注”、真实累计小时／分钟、星期栏和日期格，跟随 App 明暗主题。蓝色五档、固定北京时间及点击日期查看日统计保持不变。
+浅灰底色、大圆角卡片与蓝色操作按钮，围绕待办、统计数据和设置三个页面展开。
 
-## 安装与升级
+| 待办与专注计时 | 统计数据 | 设置 |
+| :---: | :---: | :---: |
+| <img src="docs/images/todo.png" alt="拾光待办页：专注时钟、今日专注与学习任务" width="250"> | <img src="docs/images/statistics.png" alt="拾光统计页：累计专注、任务分布饼图与年度热力图" width="250"> | <img src="docs/images/settings.png" alt="拾光设置页：每日目标、主题、提醒与触感偏好" width="250"> |
 
-打开「拾光-2.1.6.apk」安装。已有拾光时直接覆盖安装，**不要先卸载或清除数据**。沿用原包名、原开发签名和原数据格式，任务、记录、设置与进行中的计时仍由原数据仓库读取。首次开始专注时允许通知。
+以上图片由实际 Flutter 页面渲染，使用演示任务与记录，不代表真实用户数据。点击图片可以查看大图。
 
-## 整体架构
+<details>
+<summary>查看深色主题</summary>
 
-界面已完整改为 **Dart + Flutter Widgets**，安装包不再包含网页界面或使用 WebView。安卓后台部分继续使用 Java，避免依赖 Flutter 页面存活来维持计时。
+<p align="center">
+  <img src="docs/images/settings-dark.png" alt="拾光深色主题设置页面" width="280">
+</p>
 
-```text
-Flutter 界面：待办 / 沉浸时钟 / 统计图表 / 设置
-                    ↓
-FocusController：状态、操作、前台轻量刷新、触感请求
-                    ↓ MethodChannel
-Android FocusActivity（继承 MainActivity）：本机接口、权限、系统文件选择器
-静态兼容启动入口：沿用旧版本已启用的入口，全部使用原图标，不进行运行时切换
-                    ↓
-Repository：原有数据格式、持久化、单调时钟、有效区间
-FocusService：后台专注、通知控制、完成提醒、唤醒锁
-Haptics：应用内独立触感控制及安卓版本适配
-HeatmapWidget / HeatmapModel：RemoteViews 月热力小部件、跨日统计与日期跳转
+</details>
+
+### 桌面月热力图
+
+无需打开 App，即可查看本月累计时长与每天的专注情况。
+
+<p align="center">
+  <img src="docs/images/month-widget.png" alt="拾光 3×2 桌面小部件示意：本月累计时长、星期和每日热力格" width="520">
+</p>
+
+小部件图片为布局示意，时长与日期均为演示数据；实际显示会随桌面分配的尺寸、字体及主题调整。
+
+## 主要功能
+
+- **任务与计时**：自由添加、编辑和完成学习任务，为每个任务设置正计时或倒计时，支持暂停、继续、结束保存及沉浸时钟。
+- **专注统计**：累计次数、专注时长、日均时长、连续专注天数，以及按日／周／月／年查看的任务分布和专注记录。
+- **饼图与热力图**：时长以“X小时X分钟”展示；饼图中心突出小时，旁侧列表在普通字号下完整展示三个任务，更多任务可滚动查看。
+- **Android 桌面小部件**：默认 3×2，每行一周，显示本月累计时长与日期热力；点击日期可进入对应日的统计页面。
+- **个性化体验**：明亮／深色／跟随系统主题、启停与页面切换动效、应用内触感开关及 1–100% 强度调节。
+- **每日目标与备份**：以小时设置每日目标，支持小数；支持 JSON 备份恢复与 CSV 导出。
+
+## 统计规则
+
+- 新计时的有效专注时长需 **超过 10 秒**才生成记录；暂停时间不累计。
+- 跨日记录按实际专注片段分配时长，累计次数仅计算一次。
+- 日均时长从首次记录日至今按自然日计算，包含未专注的日期。
+- 日期与跨日统计统一使用 **北京时间（UTC+8）**，周从周一开始。
+- 每日目标以小时编辑，内部保存为整数分钟；原有目标可继续使用。
+
+热力颜色由浅到深，对应以下每日专注时长：
+
+| 档位 | 专注时长 |
+| --- | --- |
+| 空白色 | 0 |
+| 第一档 | 大于 0、不足 1 小时 |
+| 第二档 | 1 小时 ≤ 时长 < 3 小时 |
+| 第三档 | 3 小时 ≤ 时长 < 6 小时 |
+| 第四档 | 6 小时 ≤ 时长 < 8 小时 |
+| 第五档 | 8 小时及以上 |
+
+## 本地数据与后台计时
+
+任务、偏好和专注记录保存在设备本地。正式版本无需账号、无广告，也不申请网络权限。JSON 备份和 CSV 导出由用户通过系统文件选择器保存。
+
+后台计时由 Android 原生前台服务维护，通知栏支持暂停、继续和结束操作。部分设备需要允许通知及后台运行；触感、提醒和小部件刷新仍会受到硬件能力、省电与系统策略影响。
+
+覆盖安装需要保持相同包名与签名。卸载或清除数据会移除本地记录，重要记录可先导出备份。
+
+## 技术架构
+
+界面使用 **Dart + Flutter Widgets** 构建，通过 **MethodChannel** 调用 Android 原生能力。后台计时、持久存储、通知、触感和桌面小部件由 **Java** 实现。
+
+| 模块 | 主要职责 |
+| --- | --- |
+| [lib/main.dart](lib/main.dart)、[lib/ui.dart](lib/ui.dart) | 应用入口、主题、导航与通用组件 |
+| [lib/tasks.dart](lib/tasks.dart)、[lib/focus_toggle.dart](lib/focus_toggle.dart) | 任务、专注时钟与启停动效 |
+| [lib/stats_page.dart](lib/stats_page.dart)、[lib/statistics.dart](lib/statistics.dart) | 专注统计、任务分布与年度热力图 |
+| [lib/settings_page.dart](lib/settings_page.dart) | 每日目标、主题、触感及数据管理 |
+| [lib/controller.dart](lib/controller.dart)、[lib/models.dart](lib/models.dart) | 状态、数据模型与原生通信 |
+| [Android 原生模块](android/app/src/main/java/com/shiguang/focus) | 可靠计时、存储、通知、文件读写、触感与月热力小部件 |
+| [test](test) | Flutter 统计、控制逻辑和页面交互测试 |
+| [tool](tool) | 页面预览渲染与原生逻辑检查工具 |
+
+运行时仅依赖 Flutter SDK 与 Android 系统能力。
+
+## 本地开发
+
+已验证的开发环境：
+
+| 工具 | 版本 |
+| --- | --- |
+| Flutter / Dart | 3.47.8 / 3.13.7 |
+| JDK | 17 |
+| Android SDK / Build Tools | API 36 / 35.0.0 |
+| Android 最低版本 / 目标 API | Android 8.0（API 26）/ API 35 |
+
+克隆工程并安装依赖：
+
+```sh
+git clone https://github.com/xingxiangzi314/FocusClock.git
+cd FocusClock
+flutter pub get
 ```
 
-| 源码 | 职责 |
-| --- | --- |
-| `lib/main.dart`、`ui.dart` | 应用入口、主题、导航动效、通用组件与安全区域 |
-| `lib/tasks.dart` | 任务增删改、完成恢复、正倒计时、沉浸模式与结束确认 |
-| `lib/stats_page.dart`、`statistics.dart` | 日周月年统计、任务占比、全年热力图与记录 |
-| `lib/controller.dart`、`models.dart` | 状态模型、本机通信、刷新与失败处理 |
-| `android/app/src/main/java/com/shiguang/focus/` | 安卓存储、可靠计时、通知、文件读写与触感 |
-| `test/` | Flutter 控制逻辑、统计与界面操作测试 |
-| `tool/preview_test.dart` | 使用演示数据渲染界面预览，数据不会打入 APK |
+### 在 VS Code 预览 UI
 
-应用运行只使用 Flutter SDK 及系统能力，没有第三方运行时插件、账号、远程页面、广告或网络权限。中文文字使用设备字体，图标随 APK 离线打包。开发时下载工具与依赖需要联网。
+安装 Flutter 与 Dart 扩展，打开 [lib/ui_previews.dart](lib/ui_previews.dart)，在命令面板执行 **Flutter: Show Widget Preview**。
 
-## 功能与统计口径
+预览包含待办、统计数据和设置页面，使用内存演示数据，**无需手机或模拟器**。修改页面后保存即可预览；后台计时、通知、触感与桌面小部件需在 Android 设备中体验。
 
-- 任务支持正计时或 1–720 分钟倒计时，六种图标与颜色，编辑、删除、完成与恢复；计时方式在任务编辑中设置。删除任务保留历史记录。
-- 开始、暂停、继续、结束确认、沉浸时钟、通知栏操作；倒计时完成自动保存，正计时单次上限 24 小时。
-- 新计时有效专注 **超过 10 秒**才生成记录，等于或少于 10 秒不计入次数与时长；旧记录与旧 JSON 备份继续保留。
-- 暂停时间不累计，跨天按有效片段分配。跨日记录可能在多天的列表出现，累计次数只计一次。
-- 日均从首次记录日至今按自然日计算，包含未专注日；时钟倒计时秒数向上取整，统计分钟向下取整。
-- 日、周、月、年切换，日期选择、历史周期、饼图、热力图与记录详情／删除。周从周一开始。
-- 热力图按所选年份展示，可左右滑动；默认定位到所选日期附近，点击日期进入当日统计。分级为无专注、少于 1 小时、1–3 小时、3–6 小时、6–8 小时、8 小时及以上（各区间右端不含，最后一档含 8 小时）。
-- 每日目标、明亮／深色／跟随系统、触感、完成提醒、前台计时保持亮屏、JSON 备份恢复、CSV 导出。
-- 普通文字不可选择，无双指缩放；任务名称等输入框保留编辑功能。导航支持轻移和淡入，尊重系统减少动画设置。
+### 检查与测试
 
-## 后台、通知与触感
+```sh
+flutter analyze
+flutter test
+```
 
-后台由原生前台服务管理，界面切页或进入后台不会重置计时。通知运行时只显示系统动态时钟，暂停时改为固定时长，避免出现两个不同步的时间。倒计时运行期间使用 CPU 唤醒锁。
+2.1.6 已通过 43 项 Flutter 自动化测试，覆盖统计分摊、目标换算、任务操作、主题、动效与页面布局。原生检查工具位于 `tool/test_*_native.py`；运行它们还需 Python、JDK、Android SDK 及对应测试依赖，详见各脚本。
 
-触感开关由应用独立控制，不读取或修改系统触感开关。设置中可调节 1–100% 强度，默认 35%，松手保存并体验。硬件支持时使用轻触原语，否则使用短包络／短脉冲兼容，避免长时间重振。Android 13 及以上通过媒体用途的自定义短振调用，旧版本采用系统允许的兼容方式。开启应用开关立即轻振，关闭停止后续操作反馈；完成提醒单独控制。全部禁振、媒体振动关闭、勿扰、省电或厂商限制仍可能阻止振动。
+### 运行与构建 Android
 
-小米等系统可能需要允许拾光后台活动。强行停止可能中断完成提醒；设备重启后按最近约 30 秒检查点暂停恢复，关机时间不计入专注。卸载或清除数据会删除记录，请先导出备份。备份不包含进行中的专注，恢复前完整校验并二次确认，恢复会替换当前数据。系统云备份已关闭。
-
-## Git 版本记录
-
-本目录已建立本地 Git 仓库，主分支为 `main`，包含修改前的源代码基线和本次功能提交，版本标签为 `v2.1.6`。VS Code 左侧“源代码管理”可查看改动和提交，也可运行 `git log --oneline`。签名密钥保留在本机 signing 目录并由 .gitignore 排除，缓存、安装包和本机绝对路径配置同样不纳入版本记录。未配置远程仓库。
-
-## 在 VS Code 快速预览 UI
-
-使用 Flutter 插件的 **Widget Preview**。入口为 `lib/ui_previews.dart`，其中已配置待办、统计数据、设置三张 412×915 的手机尺寸预览。它们直接复用实际页面和底部导航，通过内存演示数据展示 UI，不依赖安卓设备、后台计时或用户学习记录。
-
-打开 `lib/ui_previews.dart`，在命令面板执行 **Flutter: Show Widget Preview**。修改 `tasks.dart`、`stats_page.dart`、`settings_page.dart`、`ui.dart` 或 `focus_toggle.dart` 后保存，预览会更新。已取消“只显示当前文件”的过滤，可在修改其他布局文件时持续查看三页。工作区配置为打开项目时预热预览服务、在编辑器旁显示；UI 预览使用此面板，无需按 F5。
-
-`ui_previews.dart` 未被正式 `main.dart` 入口导入，演示数据不进入正式应用入口。官方说明：https://docs.flutter.dev/tools/widget-previewer 。本次仅进行了静态检查与预览入口注册确认，没有运行功能测试或打包 APK。
-
-## 安卓设备功能调试（可选）
-
-2026-10-25 已完成 SDK 许可确认，启动 Pixel_7（Android 17／API 37）并实际运行拾光。WHPX、首页、统计、设置与热重载已验证。VS Code 已通过 `.vscode/launch.json` 的“拾光：安卓界面预览”接入调试，设备为 `emulator-5554`。
-
-工作区使用 `D:/code/flutter`、`work/android-sdk`、Java 17 及现有 Pub／Gradle 缓存。Flutter 用户配置单独放在 `work/flutter-user`，调试会话显式使用同一配置，避免编辑器继续选用 Android Studio 的 Java 25。以后执行 `Flutter: Launch Emulator` 并选择 Pixel_7，待安卓桌面出现后按 F5，修改 Dart 界面后保存即可热重载。Flutter 尚未加入系统 PATH，终端可使用完整路径 `& 'D:/code/flutter/bin/flutter.bat'`。
-
-`android/app/src/debug/AndroidManifest.xml` 为 Flutter 本地 VM 调试服务声明 INTERNET 权限，解决调试版无法建立热重载连接的问题。该配置仅用于 debug 构建；已核对现有 2.0.6 正式 APK 仍无网络权限且哈希不变。模拟器实际画面见 `../预览/模拟器-待办.png`、`模拟器-统计数据.png` 和 `模拟器-设置.png`。
-
-## 构建
-
-本次使用 Flutter **3.47.8**（Dart 3.13.7）、JDK 17、Android SDK Platform 36、Build Tools 35.0.0，目标 Android API 35。工程使用 Gradle 8.14.3、Android Gradle Plugin 8.11.1、Kotlin 构建依赖 2.3.20，Wrapper 已附带。
+工程的签名配置读取 `signing/debug.keystore`，密钥文件不随仓库上传。已有本地开发密钥时直接复用；首次克隆可在 PowerShell 中生成自己的开发密钥（需将 JDK 的 `keytool` 加入 PATH）：
 
 ```powershell
-.\build.ps1 -FlutterRoot 'C:\dev\flutter' -SdkRoot 'C:\Android\Sdk' -JavaHome 'C:\Program Files\Java\jdk-17'
+New-Item -ItemType Directory -Force signing | Out-Null
+keytool -genkeypair -keystore signing/debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=FocusClock Local Development"
 ```
 
-脚本获取 Flutter 依赖、构建 ARM32 + ARM64 通用 release APK，使用现有证书签名并验证，输出到上一级发布目录。验证成功后才清理发布目录中的旧版本 APK／idsig，不删除源码 ZIP。
+然后连接 Android 手机或启动模拟器：
 
-也可以用 Flutter 插件在 Android Studio 或 VS Code 打开本目录，执行 `flutter pub get`、`flutter test`、`flutter build apk --release --target-platform android-arm,android-arm64`。首次构建需下载 Gradle、安卓依赖及可能缺少的 SDK 工具。`android/local.properties` 为本机路径，不应复制到其他电脑直接使用。
+```sh
+flutter run
+```
 
-保持 `signing/debug.keystore` 不变才能覆盖现有安装；别名 `androiddebugkey`，开发口令 `android`。这是个人开发签名包，未上架商店。
+构建 ARM32 + ARM64 通用 APK：
 
-## 验证与范围
+```sh
+flutter build apk --release --target-platform android-arm,android-arm64
+```
 
-- Dart 静态检查无问题。
-- 43 项 Flutter 测试覆盖统计分摊、日期边界、触感开关、过期刷新、自动保存刷新、任务表单、计时操作、导航动效、深色与减少动画，以及时钟高度、统计卡片顺序与 320／412／768 宽度布局。新增启停动效、连续反向、状态确认、操作失败和沉浸时钟检查。
-- 4 种升级入口状态、55 项原生数据／刷新及 44 项原生热力图检查通过。未修改的触感与通知沿用此前检查；原生数据和颜色测试使用真实业务源码，桌面布局及系统调度未在设备实测。
-- 使用中文字体及实际图标渲染 Flutter 五种页面状态，检查带记录的图表、浅色与深色布局；演示数据只用于预览。
-- Flutter release 构建、v2／v3／v4 签名、16 KB 对齐、包名／版本／权限与 Flutter AOT 产物校验通过，证书与 2.1.5 一致。主题动画使用实际 Flutter 帧生成预览，见 ../预览/主题切换.gif；此前启停动效见 ../预览/启停动效-8瓣背景上移.gif。
-- 2.0.6 的界面曾在 Pixel_7 模拟器验证三页显示、导航与热重载；本版本原生触感经平台替身验证，未连接安卓真机，实际轻重和小米系统限制需在手机上确认。
+安装包生成于 `build/app/outputs/flutter-apk/app-release.apk`。自行生成的签名用于本地开发，覆盖已有安装时需使用相同证书。
 
-Flutter 与安卓通信采用 [官方 Platform Channels](https://docs.flutter.dev/platform-integration/platform-channels)。
+## 反馈
 
-原生触感检查可运行 `python tool/test_haptics_native.py`；数据检查可运行 `python tool/test_repository_native.py`（需要 org.json 测试 JAR，可通过 JSON_JAR 指定；本机复用工作区 work/json.jar）。两者编译实际业务源码，不连接手机。
-
-原图标资源位于 android/app/src/main/res/drawable/ic_launcher_foreground.xml 与 mipmap-anydpi-v26/ic_launcher.xml。升级入口检查：python tool/check_static_launcher.py；主题连续切换与页面状态验证：flutter test test/theme_test.dart。未取得小米崩溃日志，仍需手机复测。
-
-小部件通过系统小部件列表添加，名称“拾光 · 本月热力”。保存／自动完成／删除／恢复／重置后刷新；系统周期为 30 分钟，省电及桌面策略可能延迟。新开机、升级、时区与日期事件会请求更新，不需要精确闹钟或额外计时服务。
-
-原生小部件模型和配色检查：python tool/test_heatmap_native.py（需要本地 Android SDK 与 org.json 测试依赖）。该脚本不实例化 Android RemoteViews，不代表完成小米桌面实测。
-
-
-小部件默认 3×2，最小 180×110 dp，热力格采用圆角热力格。已有桌面小部件可能保留旧占位，可长按缩小或仅移除后重新添加；新版不会自动重排桌面。最小尺寸已用六周月份示意检查，实际效果仍需在小米桌面确认。
-
-
-小部件原生布局为 widget_heatmap_reference.xml，HeatmapReferenceLayout 按确认图片的 906×674 卡片比例计算区域与字体。累计值读取 HeatmapModel.Month.total，预览样例不会进入用户数据。背景与热力格资源由 tool/generate_widget_shapes.py 维护。
-
-2.1.5 将小部件累计时长行稍微上移，并增加显示高度和星期栏前的间距；星期栏和日期格位置保持不变。
-
-2.1.6 标题栏上移，年度热力图标题下移。今日、累计、日均及饼图时长采用小时与分钟；每日目标以小时编辑、支持小数，保存时换算为整数分钟。饼图扩大、收紧下方留白，中心单行突出小时、缩小分钟，旁侧普通字号下完整显示三条任务，更多任务可滚动查看。
+欢迎通过 [Issues](https://github.com/xingxiangzi314/FocusClock/issues) 提交问题或功能建议。界面问题可附截图；计时、通知或小部件问题，请说明手机型号、Android／系统版本、App 版本及复现步骤。
